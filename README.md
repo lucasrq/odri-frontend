@@ -2,7 +2,7 @@
 
 **Qual perfume eu uso hoje?** A odri olha o clima da sua cidade e a hora do dia e escolhe, entre os perfumes que você já tem, o que combina agora, com o motivo da escolha.
 
-Instagram: [@odri.app](https://instagram.com/odri.app)
+**Site:** [odri-app.vercel.app](https://odri-app.vercel.app) · **Instagram:** [@odri.app](https://instagram.com/odri.app)
 
 > Este repositório é o site (React). A API (Java + Spring Boot) fica num repositório privado.
 
