@@ -78,7 +78,12 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
+  /* Tira o quadrado azul que o celular desenha ao tocar num botão */
+  -webkit-tap-highlight-color: transparent;
+}
 
 body {
   margin: 0;
@@ -437,23 +442,32 @@ button { font: inherit; color: inherit; }
   to { opacity: 1; transform: none; }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  /* Abertura: um elemento depois do outro */
-  .entra { animation: aparece 0.8s var(--suave) both; animation-delay: calc(var(--i, 0) * 90ms); }
-  .entra-celular { animation: celular-entra 1s var(--suave) 0.25s both; }
+/* Abertura: um elemento depois do outro */
+.entra { animation: aparece 0.8s var(--suave) both; animation-delay: calc(var(--i, 0) * 90ms); }
+.entra-celular { animation: celular-entra 1s var(--suave) 0.25s both; }
 
-  /* Seções: aparecem ao rolar (navegadores com scroll-driven animations) */
-  @supports (animation-timeline: view()) {
-    .revela {
-      animation: aparece linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 28%;
-    }
-  }
-}
+/* Seções: aparecem ao entrar na tela (a classe "visivel" vem do useRevela) */
+.revela { opacity: 0; }
+.revela.visivel { animation: aparece 0.8s var(--suave) both; }
 
+/*
+  Quem pediu "menos movimento" no sistema (ex.: Windows com "Efeitos de animação" desligado):
+  nada desliza nem gira; as coisas só aparecem suavemente.
+*/
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  @keyframes aparece { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes aparece-leve { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes celular-entra { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes respira { from { opacity: 0.4; } to { opacity: 1; } }
+  @keyframes gira-entra { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Tema: em vez do círculo, um esmaecer rápido */
+  ::view-transition-new(root) { animation: aparece 0.3s ease; }
+
+  .barra-marcador { transition: none; }
+  .cartao-borda:hover { transform: none; }
+  .botao:active, .toque:active, .botao-tema:active { transform: none; }
+  .botao-destaque:hover svg { transform: none; }
   html { scroll-behavior: auto; }
 }
 

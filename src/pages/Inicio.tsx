@@ -5,6 +5,7 @@ import CelularDemo, { type CidadeExemplo } from '../components/CelularDemo'
 import { Cadeado, Check, IconeApp, Logo, Mais, Seta } from '../components/Icones'
 import Topo from '../components/Topo'
 import type { Periodo } from '../lib/sugestao'
+import { useRevela } from '../lib/useRevela'
 
 const CIDADES: CidadeExemplo[] = [
   { nome: 'São Paulo', graus: 22 },
@@ -30,6 +31,7 @@ export default function Inicio() {
   const [indiceCidade, setIndiceCidade] = useState(0)
   const [periodo, setPeriodo] = useState<Periodo>(0)
   const cidade = CIDADES[indiceCidade]
+  useRevela()
 
   // Marcador na barra de temperatura (8 °C a 36 °C)
   const posicao = Math.max(2, Math.min(98, ((cidade.graus - 8) / 28) * 100))
