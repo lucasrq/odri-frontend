@@ -20,7 +20,7 @@ function salvar(tema: Tema) {
  * Tema claro/escuro.
  * A troca abre um círculo a partir do botão (View Transitions, Chrome/Edge/Safari novos).
  * Navegador sem suporte: as cores mudam com uma transição suave de CSS.
- * Quem pediu "menos movimento" no sistema: troca na hora.
+ * Quem pediu "menos movimento" no sistema: esmaecer rápido, sem círculo (regra no CSS).
  */
 export function useTema() {
   const [tema, setTema] = useState<Tema>(temaAtual)
@@ -34,10 +34,10 @@ export function useTema() {
       flushSync(() => setTema(novo))
     }
 
-    const semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
 
-    if (!semMovimento && typeof doc.startViewTransition === 'function') {
+    // Com "menos movimento", o CSS troca o círculo por um esmaecer rápido
+    if (typeof doc.startViewTransition === 'function') {
       // Centro do círculo = o botão clicado; raio = até o canto mais longe da tela
       const caixa = evento.currentTarget.getBoundingClientRect()
       const x = caixa.left + caixa.width / 2
@@ -47,12 +47,11 @@ export function useTema() {
       raiz.style.setProperty('--troca-y', `${y}px`)
       raiz.style.setProperty('--troca-raio', `${raio}px`)
       doc.startViewTransition(aplicar)
-    } else if (!semMovimento) {
+    } else {
+      // Navegador sem View Transitions: as cores mudam com transição suave
       raiz.classList.add('tema-trocando')
       aplicar()
       window.setTimeout(() => raiz.classList.remove('tema-trocando'), 450)
-    } else {
-      aplicar()
     }
 
     salvar(novo)
