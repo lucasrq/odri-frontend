@@ -423,9 +423,17 @@ button { font: inherit; color: inherit; }
 
 /* ---------- Tela provisória ---------- */
 
-.em-breve { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px; text-align: center; }
-.em-breve h1 { font-size: 40px; letter-spacing: -0.03em; }
-.em-breve .botao { height: 52px; padding: 0 24px; }
+.em-breve {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px; padding: 40px 20px; text-align: center;
+  animation: aparece 0.7s var(--suave) both;
+}
+.em-breve h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.02; font-weight: 800; letter-spacing: -0.04em; }
+.em-breve-texto { max-width: 40ch; font-size: 19px; color: var(--texto-2); }
+.em-breve-botoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px; }
+/* Aqui o ícone fica escuro no tema claro (fora de um bloco escuro) */
+.em-breve .icone-app-fundo { fill: var(--tinta); }
+.em-breve .icone-app-anel { stroke: var(--tinta-texto); }
 
 /* ---------- Animações ---------- */
 
