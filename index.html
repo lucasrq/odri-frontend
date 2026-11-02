@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>odri · Qual perfume eu uso hoje?</title>
+    <meta name="description" content="A odri olha o clima da sua cidade e a hora do dia e escolhe, entre os perfumes que você já tem, o que combina agora. Grátis." />
+
+    <!-- Prévia quando o link é compartilhado (WhatsApp, Instagram, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="odri · Qual perfume eu uso hoje?" />
+    <meta property="og:description" content="O perfume certo pro seu dia, escolhido pelo clima e pela hora. Grátis." />
+    <meta property="og:locale" content="pt_BR" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#EEF0F0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0F1113" media="(prefers-color-scheme: dark)" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" />
+
+    <!-- Aplica o tema ANTES de desenhar a página (evita piscar branco no tema escuro) -->
+    <script>
+      (function () {
+        var tema = null;
+        try { tema = localStorage.getItem('odri-tema'); } catch (e) {}
+        if (tema !== 'claro' && tema !== 'escuro') {
+          tema = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+        }
+        document.documentElement.dataset.tema = tema;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

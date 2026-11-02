@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <style>
+    .fundo { fill: #17191C; }
+    .anel { stroke: #EEF0F0; }
+    /* Aba do navegador escura: inverte pra não sumir */
+    @media (prefers-color-scheme: dark) {
+      .fundo { fill: #ECEEEF; }
+      .anel { stroke: #17191C; }
+    }
+  </style>
+  <rect class="fundo" width="512" height="512" rx="96"/>
+  <circle class="anel" cx="240" cy="296" r="120" fill="none" stroke-width="84"/>
+  <circle cx="392" cy="128" r="64" fill="#D08A2E"/>
+</svg>
