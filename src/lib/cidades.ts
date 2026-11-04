@@ -1,0 +1,32 @@
+/** As 27 capitais (nome + coordenadas), para quem prefere fixar uma cidade. */
+export type Cidade = { nome: string; latitude: number; longitude: number }
+
+export const CAPITAIS: Cidade[] = [
+  { nome: 'Aracaju', latitude: -10.9472, longitude: -37.0731 },
+  { nome: 'Belém', latitude: -1.4554, longitude: -48.4898 },
+  { nome: 'Belo Horizonte', latitude: -19.9167, longitude: -43.9345 },
+  { nome: 'Boa Vista', latitude: 2.8238, longitude: -60.6753 },
+  { nome: 'Brasília', latitude: -15.7939, longitude: -47.8828 },
+  { nome: 'Campo Grande', latitude: -20.4428, longitude: -54.6464 },
+  { nome: 'Cuiabá', latitude: -15.601, longitude: -56.0974 },
+  { nome: 'Curitiba', latitude: -25.4284, longitude: -49.2733 },
+  { nome: 'Florianópolis', latitude: -27.5954, longitude: -48.548 },
+  { nome: 'Fortaleza', latitude: -3.7172, longitude: -38.5433 },
+  { nome: 'Goiânia', latitude: -16.6869, longitude: -49.2648 },
+  { nome: 'João Pessoa', latitude: -7.1151, longitude: -34.8641 },
+  { nome: 'Macapá', latitude: 0.0349, longitude: -51.0694 },
+  { nome: 'Maceió', latitude: -9.666, longitude: -35.735 },
+  { nome: 'Manaus', latitude: -3.119, longitude: -60.0217 },
+  { nome: 'Natal', latitude: -5.7945, longitude: -35.211 },
+  { nome: 'Palmas', latitude: -10.1689, longitude: -48.3317 },
+  { nome: 'Porto Alegre', latitude: -30.0346, longitude: -51.2177 },
+  { nome: 'Porto Velho', latitude: -8.7608, longitude: -63.8999 },
+  { nome: 'Recife', latitude: -8.0476, longitude: -34.877 },
+  { nome: 'Rio Branco', latitude: -9.975, longitude: -67.8243 },
+  { nome: 'Rio de Janeiro', latitude: -22.9068, longitude: -43.1729 },
+  { nome: 'Salvador', latitude: -12.9718, longitude: -38.5011 },
+  { nome: 'São Luís', latitude: -2.5387, longitude: -44.2825 },
+  { nome: 'São Paulo', latitude: -23.5505, longitude: -46.6333 },
+  { nome: 'Teresina', latitude: -5.0919, longitude: -42.8034 },
+  { nome: 'Vitória', latitude: -20.3155, longitude: -40.3128 },
+]
