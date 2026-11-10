@@ -186,6 +186,12 @@ button { font: inherit; color: inherit; }
 .topo-menu { display: flex; align-items: center; gap: 22px; font-weight: 500; font-size: 15px; }
 .topo-menu > a:not(.botao) { text-decoration: none; }
 .topo-menu > a:not(.botao):hover { color: var(--apagado); }
+.topo-entrar { font-weight: 700; padding: 10px 4px; }
+
+/* "Já tem conta? Entrar" na abertura e no alto da tela de criar conta */
+.hero-entrar, .conta-ja-tem { font-size: 15px; color: var(--apagado); }
+.hero-entrar a, .conta-ja-tem a { font-weight: 700; color: var(--texto); }
+.hero-entrar { margin-top: -4px; }
 
 .botao-tema {
   width: 44px; height: 44px; border-radius: 999px; padding: 0;

@@ -52,6 +52,9 @@ export default function Inicio() {
               <Link to="/criar-conta" className="botao botao-destaque botao-grande">Começar grátis <Seta /></Link>
               <a href="#como-funciona" className="botao botao-contorno botao-grande">Ver como funciona</a>
             </div>
+            <p className="hero-entrar entra" style={ordem(3)}>
+              Já tem conta? <Link to="/entrar">Entrar</Link>
+            </p>
             <ul className="garantias entra" style={ordem(4)}>
               <li><Check /> Sem cartão de crédito</li>
               <li><Check /> Não precisa entender de perfume</li>
