@@ -27,6 +27,8 @@ export default function Topo() {
             {/* key: o ícone novo entra girando */}
             <span key={tema} className="botao-tema-icone">{escuro ? <Sol /> : <Lua />}</span>
           </button>
+          {/* Fica visível também no celular: quem já tem conta entra direto */}
+          <Link to="/entrar" className="topo-entrar">Entrar</Link>
           <Link to="/criar-conta" className="botao botao-escuro botao-pequeno">Começar grátis</Link>
         </nav>
       </div>

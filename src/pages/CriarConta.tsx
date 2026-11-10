@@ -79,6 +79,7 @@ export default function CriarConta() {
         <div className="conta-cabeca">
           <h1>Crie sua <span className="serif destaque">conta.</span></h1>
           <p className="texto-2">É grátis. Em 1 minuto você descobre qual perfume usar hoje.</p>
+          <p className="conta-ja-tem">Já tem conta? <Link to="/entrar">Entrar</Link></p>
         </div>
 
         <label className="campo">
