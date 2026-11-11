@@ -725,6 +725,27 @@ button { font: inherit; color: inherit; }
 
 /* Páginas Loja e Coleção */
 .painel-pagina { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; max-width: 640px; }
+
+/* Coleção */
+.colecao { width: 100%; align-items: stretch; }
+.colecao-cabeca { display: flex; flex-direction: column; gap: 10px; }
+.colecao-limite { display: flex; flex-direction: column; gap: 6px; max-width: 320px; }
+.colecao-limite-cheia { height: 100%; border-radius: 999px; background: var(--texto); transition: width 0.4s var(--suave); }
+.colecao-filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+.colecao-filtro {
+  padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--borda-forte);
+  background: none; color: var(--texto); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.colecao-filtro[aria-pressed="true"] { background: var(--texto); color: var(--fundo); border-color: var(--texto); }
+.colecao-item { background: var(--superficie); border: 1px solid var(--borda); }
+.colecao-tirar {
+  align-self: flex-start; padding: 4px 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 700; color: var(--apagado); text-decoration: underline;
+}
+.colecao-tirar:hover { color: var(--texto); }
+.colecao-confirma { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; font-weight: 700; }
+.colecao-confirma span { margin-right: auto; }
+.botao-mini { height: 38px; padding: 0 14px; font-size: 14px; }
 .painel-titulo-pagina { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
 .cartao-suave { display: flex; flex-direction: column; gap: 6px; padding: 20px; border-radius: 22px; background: var(--creme); color: var(--texto); }
 .cartao-suave .painel-rotulo { color: var(--creme-texto); }

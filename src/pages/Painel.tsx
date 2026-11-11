@@ -4,7 +4,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ErroApi } from '../lib/api'
 import { Cliente, garantirCadastro, jaComecou, marcarComecou } from '../lib/cadastro'
-import { listarColecao } from '../lib/colecao'
+import { ItemColecao, listarColecao, mensagemColecao, tirarDaColecao } from '../lib/colecao'
 import {
   buscarSugestao, corDaTemperatura, ItemAnalise, NOME_FAMILIA, NOME_INTENSIDADE,
   NOME_PERIODO, NOME_SELO, pegarLocalizacao, SAUDACAO, Sugestao,
@@ -90,7 +90,13 @@ export default function Painel({ tela }: { tela: Tela }) {
           />
         )}
         {tela === 'loja' && <LojaEmBreve sugestao={sugestao} />}
-        {tela === 'colecao' && <ColecaoEmBreve />}
+        {tela === 'colecao' && (
+          <Colecao
+            cliente={cliente}
+            sugestao={sugestao}
+            aoMudar={() => cliente && carregar(cliente)}
+          />
+        )}
 
         {sugestao && <p className="painel-credito">{sugestao.creditoClima}</p>}
       </main>
@@ -406,7 +412,169 @@ function LinhaAnalise({ item }: { item: ItemAnalise }) {
   )
 }
 
-/* ---------- Loja e Coleção (em breve) ---------- */
+/* ---------- Coleção ---------- */
+
+type Filtro = 'todos' | 'combinam' | 'analise'
+const FILTROS: [Filtro, string][] = [['todos', 'Todos'], ['combinam', 'Combinam hoje'], ['analise', 'Em análise']]
+
+/**
+ * Tela Coleção (/app/colecao): lista os perfumes da pessoa, adiciona e tira.
+ * A lista vem de GET /colecao; família, intensidade e selo de hoje vêm da análise
+ * da sugestão (quando ela já carregou).
+ */
+function Colecao({ cliente, sugestao, aoMudar }: {
+  cliente: Cliente | null
+  sugestao: Sugestao | null
+  aoMudar: () => void
+}) {
+  const [itens, setItens] = useState<ItemColecao[] | null>(null)
+  const [erro, setErro] = useState('')
+  const [filtro, setFiltro] = useState<Filtro>('todos')
+  const [confirmando, setConfirmando] = useState<number | null>(null)
+  const [tirando, setTirando] = useState<number | null>(null)
+
+  const carregarLista = useCallback(async () => {
+    try {
+      setItens(await listarColecao())
+      setErro('')
+    } catch (e) {
+      setErro(mensagemColecao(e))
+    }
+  }, [])
+
+  useEffect(() => { carregarLista() }, [carregarLista])
+
+  async function tirar(id: number) {
+    setTirando(id)
+    setErro('')
+    try {
+      await tirarDaColecao(id)
+      setItens((atual) => atual?.filter((p) => p.id !== id) ?? null)
+      setConfirmando(null)
+      aoMudar() // a sugestão de hoje pode mudar
+    } catch (e) {
+      setErro(mensagemColecao(e))
+    } finally {
+      setTirando(null)
+    }
+  }
+
+  function depoisDeAdicionar() {
+    carregarLista()
+    aoMudar()
+  }
+
+  const analise = new Map((sugestao?.analise ?? []).map((a) => [a.id, a]))
+  const total = itens?.length ?? 0
+  const gratis = !!cliente && !cliente.plus
+  const cheia = gratis && total >= LIMITE_GRATIS
+  const lista = (itens ?? []).filter((p) => {
+    if (filtro === 'combinam') return analise.get(p.id)?.selo === 'COMBINA'
+    if (filtro === 'analise') return p.pendente
+    return true
+  })
+
+  return (
+    <section className="painel-pagina colecao" aria-labelledby="titulo-colecao">
+      <div className="colecao-cabeca">
+        <h2 id="titulo-colecao" className="painel-titulo-pagina">Sua coleção</h2>
+        {gratis && itens && (
+          <div className="colecao-limite">
+            <div className="analise-barra" role="img" aria-label={`${total} de ${LIMITE_GRATIS} perfumes`}>
+              <div className="colecao-limite-cheia" style={{ width: `${Math.min(100, (total / LIMITE_GRATIS) * 100)}%` }} />
+            </div>
+            <p className="painel-dica">{total} de {LIMITE_GRATIS} perfumes no plano grátis</p>
+          </div>
+        )}
+      </div>
+
+      {cheia ? (
+        <div className="cartao-suave">
+          <span className="painel-rotulo">Coleção cheia</span>
+          <strong>Os {LIMITE_GRATIS} lugares do grátis estão ocupados</strong>
+          <p>Tire um perfume para colocar outro. No Plus, que chega em breve, a coleção não tem limite.</p>
+        </div>
+      ) : (
+        <div className="painel-bloco">
+          <h3 className="painel-subtitulo">Adicionar perfume</h3>
+          <BuscaPerfume
+            naColecao={(itens ?? []).map((p) => p.id)}
+            aoAdicionar={depoisDeAdicionar}
+            placeholder="Busque: Acqua di Giò, Kaiak…"
+          />
+        </div>
+      )}
+
+      {itens && itens.length > 0 && (
+        <div className="colecao-filtros" role="group" aria-label="Filtrar coleção">
+          {FILTROS.map(([valor, nome]) => (
+            <button
+              key={valor} type="button" className="colecao-filtro"
+              aria-pressed={filtro === valor} onClick={() => setFiltro(valor)}
+            >
+              {nome}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {itens === null && !erro && <p className="painel-dica">Carregando sua coleção…</p>}
+      {itens?.length === 0 && <p className="texto-2">Sua coleção está vazia. Busque um perfume acima para começar.</p>}
+      {itens && itens.length > 0 && lista.length === 0 && <p className="painel-dica">Nenhum perfume neste filtro.</p>}
+
+      {lista.length > 0 && (
+        <ul className="painel-lista">
+          {lista.map((p) => {
+            const a = analise.get(p.id)
+            const selo = p.pendente ? 'EM_ANALISE' : a?.selo
+            const detalhes = [
+              a?.familia ? NOME_FAMILIA[a.familia] : null,
+              a?.intensidade ? NOME_INTENSIDADE[a.intensidade] : null,
+            ].filter(Boolean).join(' · ')
+
+            return (
+              <li key={p.id} className="analise-item colecao-item">
+                <div className="analise-topo">
+                  <span><strong>{p.nome}</strong> <span className="apagado">{p.marca}</span></span>
+                  {selo && <span className={`selo-analise selo-${selo.toLowerCase()}`}>{NOME_SELO[selo]}</span>}
+                </div>
+                {p.pendente
+                  ? <p className="analise-motivo">A gente está classificando este perfume.</p>
+                  : detalhes && <p className="analise-motivo">{detalhes}</p>}
+
+                {confirmando === p.id ? (
+                  <div className="colecao-confirma">
+                    <span>Tirar da coleção?</span>
+                    <button type="button" className="botao botao-contorno botao-mini" onClick={() => setConfirmando(null)}>
+                      Não
+                    </button>
+                    <button
+                      type="button" className="botao botao-escuro botao-mini"
+                      disabled={tirando === p.id} onClick={() => tirar(p.id)}
+                    >
+                      {tirando === p.id ? 'Tirando…' : 'Sim, tirar'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button" className="colecao-tirar"
+                    onClick={() => setConfirmando(p.id)} aria-label={`Tirar ${p.nome} da coleção`}
+                  >
+                    Tirar
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {erro && <p className="conta-erro" role="alert">{erro}</p>}
+    </section>
+  )
+}
+
+/* ---------- Loja (em breve) ---------- */
 
 function LojaEmBreve({ sugestao }: { sugestao: Sugestao | null }) {
   const pede = sugestao?.tempo === 'FRIO' ? 'frio' : 'calor'
@@ -423,20 +591,6 @@ function LojaEmBreve({ sugestao }: { sugestao: Sugestao | null }) {
         </p>
       </div>
       <p className="painel-dica">Links de parceiros: a odri pode ganhar comissão, sem mudar o seu preço.</p>
-    </section>
-  )
-}
-
-function ColecaoEmBreve() {
-  return (
-    <section className="painel-pagina">
-      <h2 className="painel-titulo-pagina">Coleção</h2>
-      <div className="cartao-suave">
-        <span className="painel-rotulo">Em breve</span>
-        <strong>Sua coleção completa, com filtros</strong>
-        <p>Por enquanto, veja e adicione seus perfumes na tela Hoje (aba Análise).</p>
-      </div>
-      <Link to="/app" className="botao botao-escuro botao-campo">Ir para Hoje</Link>
     </section>
   )
 }
