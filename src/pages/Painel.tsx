@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ErroApi } from '../lib/api'
-import { Cliente, garantirCadastro, jaComecou, marcarComecou } from '../lib/cadastro'
+import { apagarConta, Cliente, garantirCadastro, jaComecou, marcarComecou, mudarNome } from '../lib/cadastro'
 import { ItemColecao, listarColecao, mensagemColecao, tirarDaColecao } from '../lib/colecao'
 import {
   buscarSugestao, corDaTemperatura, ItemAnalise, NOME_FAMILIA, NOME_INTENSIDADE,
@@ -13,13 +13,13 @@ import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
 import { Logo, Lua, Seta, Sol } from '../components/Icones'
 
-type Tela = 'hoje' | 'colecao' | 'loja'
+type Tela = 'hoje' | 'colecao' | 'loja' | 'conta'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
 
 const LIMITE_GRATIS = 8
 
 /**
- * Painel do app (/app, /app/colecao, /app/loja).
+ * Painel do app (/app, /app/colecao, /app/loja, /app/conta).
  * Topo: logo, menu (computador), tema e foto da conta.
  * Embaixo (celular): Hoje · Coleção · Loja.
  */
@@ -98,6 +98,8 @@ export default function Painel({ tela }: { tela: Tela }) {
           />
         )}
 
+        {tela === 'conta' && <Conta cliente={cliente} aoMudarCliente={setCliente} />}
+
         {sugestao && <p className="painel-credito">{sugestao.creditoClima}</p>}
       </main>
 
@@ -161,6 +163,7 @@ function Topo({ cliente }: { cliente: Cliente | null }) {
                 <strong>{cliente?.nome}</strong>
                 <span>{cliente?.plus ? 'Plano Plus' : 'Plano grátis'}</span>
               </div>
+              <Link role="menuitem" to="/app/conta">Minha conta</Link>
               <Link role="menuitem" to="/app/comecar">Cidade: {cliente?.cidade ?? 'automática'}</Link>
               <a role="menuitem" href="/#planos" className="destaque-texto">Conhecer o Plus</a>
               <button type="button" role="menuitem" onClick={sair}>Sair</button>
@@ -593,6 +596,197 @@ function LojaEmBreve({ sugestao }: { sugestao: Sugestao | null }) {
       <p className="painel-dica">Links de parceiros: a odri pode ganhar comissão, sem mudar o seu preço.</p>
     </section>
   )
+}
+
+/* ---------- Minha conta ---------- */
+
+type Recado = { tipo: 'ok' | 'erro'; texto: string } | null
+const SENHA_MINIMA = 8
+
+function Conta({ cliente, aoMudarCliente }: {
+  cliente: Cliente | null
+  aoMudarCliente: (c: Cliente) => void
+}) {
+  const navegar = useNavigate()
+  const [email, setEmail] = useState('')
+
+  // Nome
+  const [nome, setNome] = useState(cliente?.nome ?? '')
+  const [salvandoNome, setSalvandoNome] = useState(false)
+  const [recadoNome, setRecadoNome] = useState<Recado>(null)
+
+  // Senha
+  const [senha, setSenha] = useState('')
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [salvandoSenha, setSalvandoSenha] = useState(false)
+  const [recadoSenha, setRecadoSenha] = useState<Recado>(null)
+
+  // Apagar conta
+  const [confirmando, setConfirmando] = useState(false)
+  const [apagando, setApagando] = useState(false)
+  const [erroApagar, setErroApagar] = useState('')
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ''))
+  }, [])
+
+  // O cliente chega depois da tela abrir: preenche o campo quando chegar
+  useEffect(() => {
+    if (cliente) setNome(cliente.nome)
+  }, [cliente])
+
+  async function salvarNome(e: FormEvent) {
+    e.preventDefault()
+    setRecadoNome(null)
+    if (nome.trim().length < 2) return setRecadoNome({ tipo: 'erro', texto: 'Escreva seu nome.' })
+    setSalvandoNome(true)
+    try {
+      aoMudarCliente(await mudarNome(nome.trim()))
+      setRecadoNome({ tipo: 'ok', texto: 'Nome salvo.' })
+    } catch {
+      setRecadoNome({ tipo: 'erro', texto: 'Não deu para salvar agora. Tente de novo.' })
+    } finally {
+      setSalvandoNome(false)
+    }
+  }
+
+  async function salvarSenha(e: FormEvent) {
+    e.preventDefault()
+    setRecadoSenha(null)
+    if (senha.length < SENHA_MINIMA) {
+      return setRecadoSenha({ tipo: 'erro', texto: `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.` })
+    }
+    setSalvandoSenha(true)
+    const { error } = await supabase.auth.updateUser({ password: senha })
+    setSalvandoSenha(false)
+    if (error) return setRecadoSenha({ tipo: 'erro', texto: erroSenha(error.message) })
+    setSenha('')
+    setRecadoSenha({ tipo: 'ok', texto: 'Senha trocada. Use a nova na próxima vez que entrar.' })
+  }
+
+  async function apagar() {
+    if (!cliente) return
+    setApagando(true)
+    setErroApagar('')
+    try {
+      await apagarConta(cliente.id)
+      navegar('/', { replace: true })
+    } catch {
+      setErroApagar('Não deu para apagar agora. Tente de novo em instantes.')
+      setApagando(false)
+    }
+  }
+
+  return (
+    <section className="painel-pagina conta-pagina" aria-labelledby="titulo-conta">
+      <h2 id="titulo-conta" className="painel-titulo-pagina">Minha conta</h2>
+
+      <div className="painel-bloco">
+        <div className="conta-linha">
+          <span>
+            <span className="painel-rotulo">Plano</span>
+            <strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong>
+          </span>
+          {!cliente?.plus && <a href="/#planos">Conhecer o Plus</a>}
+        </div>
+        <div className="conta-linha">
+          <span>
+            <span className="painel-rotulo">Cidade</span>
+            <strong>{cliente?.cidade ?? 'Automática (localização)'}</strong>
+          </span>
+          <Link to="/app/comecar">Trocar</Link>
+        </div>
+        <div className="conta-linha">
+          <span>
+            <span className="painel-rotulo">E-mail</span>
+            <strong>{email || '…'}</strong>
+          </span>
+        </div>
+      </div>
+
+      <form className="painel-bloco" onSubmit={salvarNome} noValidate>
+        <h3 className="painel-subtitulo">Seu nome</h3>
+        <label className="campo">
+          <span className="so-leitor">Nome</span>
+          <input
+            type="text" autoComplete="given-name" maxLength={100}
+            value={nome} onChange={(e) => setNome(e.target.value)}
+          />
+        </label>
+        {recadoNome && <p className={recadoNome.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoNome.texto}</p>}
+        <button
+          type="submit" className="botao botao-escuro botao-campo conta-botao"
+          disabled={salvandoNome || !cliente || nome.trim() === cliente.nome}
+        >
+          {salvandoNome ? 'Salvando…' : 'Salvar nome'}
+        </button>
+      </form>
+
+      <form className="painel-bloco" onSubmit={salvarSenha} noValidate>
+        <h3 className="painel-subtitulo">Trocar senha</h3>
+        <label className="campo">
+          <span className="so-leitor">Senha nova</span>
+          <div className="campo-senha">
+            <input
+              type={mostrarSenha ? 'text' : 'password'} autoComplete="new-password"
+              minLength={SENHA_MINIMA} placeholder={`Senha nova (pelo menos ${SENHA_MINIMA} caracteres)`}
+              value={senha} onChange={(e) => setSenha(e.target.value)}
+            />
+            <button
+              type="button" className="campo-mostrar"
+              onClick={() => setMostrarSenha(!mostrarSenha)} aria-pressed={mostrarSenha}
+            >
+              {mostrarSenha ? 'Esconder' : 'Mostrar'}
+            </button>
+          </div>
+        </label>
+        {recadoSenha && <p className={recadoSenha.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoSenha.texto}</p>}
+        <button
+          type="submit" className="botao botao-escuro botao-campo conta-botao"
+          disabled={salvandoSenha || senha === ''}
+        >
+          {salvandoSenha ? 'Trocando…' : 'Trocar senha'}
+        </button>
+      </form>
+
+      <div className="painel-bloco conta-perigo">
+        <h3 className="painel-subtitulo">Apagar conta</h3>
+        <p className="texto-2">
+          Apaga seu login, sua coleção e todos os seus dados da odri. Não tem como desfazer.
+        </p>
+        {confirmando ? (
+          <div className="colecao-confirma">
+            <span>Tem certeza?</span>
+            <button type="button" className="botao botao-contorno botao-mini" onClick={() => setConfirmando(false)}>
+              Não
+            </button>
+            <button type="button" className="botao botao-perigo botao-mini" disabled={apagando} onClick={apagar}>
+              {apagando ? 'Apagando…' : 'Sim, apagar tudo'}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="colecao-tirar" onClick={() => setConfirmando(true)}>
+            Apagar minha conta
+          </button>
+        )}
+        {erroApagar && <p className="conta-erro" role="alert">{erroApagar}</p>}
+      </div>
+    </section>
+  )
+}
+
+/** Mensagens do Supabase vêm em inglês: aqui viram português. */
+function erroSenha(msg: string) {
+  const m = msg.toLowerCase()
+  if (m.includes('different from the old')) return 'A senha nova precisa ser diferente da atual.'
+  if (m.includes('reauthentication') || m.includes('nonce')) {
+    return 'Por segurança, saia e entre de novo antes de trocar a senha.'
+  }
+  if (m.includes('rate limit') || m.includes('security purposes')) {
+    return 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.'
+  }
+  if (m.includes('password')) return 'Essa senha é fraca. Use letras e números.'
+  return 'Não deu para trocar a senha agora. Tente de novo em instantes.'
 }
 
 function Aviso({ titulo, texto, children }: { titulo: string; texto: string; children: ReactNode }) {
