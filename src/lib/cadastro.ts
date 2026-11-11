@@ -31,6 +31,26 @@ export function marcarComecou(id: string) {
   }
 }
 
+/** PUT /clientes/eu/nome: muda o nome e devolve o cliente atualizado. */
+export function mudarNome(nome: string) {
+  return api<Cliente>('/clientes/eu/nome', { method: 'PUT', body: JSON.stringify({ nome }) })
+}
+
+/**
+ * LGPD: apaga a conta e tudo da pessoa (DELETE /clientes/eu).
+ * Depois limpa o que ficou neste aparelho. O signOut é "local" porque o login
+ * já não existe mais no Supabase (o "global" daria erro).
+ */
+export async function apagarConta(id: string) {
+  await api<void>('/clientes/eu', { method: 'DELETE' })
+  try {
+    localStorage.removeItem(chaveComecou(id))
+  } catch {
+    // aba anônima: nada guardado
+  }
+  await supabase.auth.signOut({ scope: 'local' })
+}
+
 /**
  * Depois do login: busca o perfil no nosso back-end.
  * Na primeira vez ele não existe (404), então cria com o nome e o aceite

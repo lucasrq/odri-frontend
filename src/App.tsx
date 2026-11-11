@@ -24,6 +24,7 @@ export default function App() {
         <Route path="/app" element={<Painel tela="hoje" />} />
         <Route path="/app/colecao" element={<Painel tela="colecao" />} />
         <Route path="/app/loja" element={<Painel tela="loja" />} />
+        <Route path="/app/conta" element={<Painel tela="conta" />} />
         <Route path="/app/comecar" element={<Comecar />} />
         <Route path="/privacidade" element={<EmBreve />} />
         <Route path="*" element={<Navigate to="/" replace />} />

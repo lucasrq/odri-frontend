@@ -746,6 +746,17 @@ button { font: inherit; color: inherit; }
 .colecao-confirma { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; font-weight: 700; }
 .colecao-confirma span { margin-right: auto; }
 .botao-mini { height: 38px; padding: 0 14px; font-size: 14px; }
+
+/* Minha conta */
+.conta-pagina { width: 100%; align-items: stretch; }
+.conta-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.conta-linha > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.conta-linha a { font-size: 14px; font-weight: 700; color: var(--texto); }
+.conta-botao { align-self: flex-start; }
+.conta-botao:disabled { opacity: 0.5; cursor: default; }
+.conta-perigo { border-color: color-mix(in srgb, #D64545 40%, transparent); }
+.botao-perigo { background: #B83232; color: #FFFFFF; }
+.botao-perigo:hover { filter: brightness(1.08); }
 .painel-titulo-pagina { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
 .cartao-suave { display: flex; flex-direction: column; gap: 6px; padding: 20px; border-radius: 22px; background: var(--creme); color: var(--texto); }
 .cartao-suave .painel-rotulo { color: var(--creme-texto); }
