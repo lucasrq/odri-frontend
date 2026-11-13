@@ -9,6 +9,7 @@ import {
   buscarSugestao, corDaTemperatura, ItemAnalise, NOME_FAMILIA, NOME_INTENSIDADE,
   NOME_PERIODO, NOME_SELO, pegarLocalizacao, SAUDACAO, Sugestao,
 } from '../lib/painel'
+import { buscarLoja, NOME_FAIXA, NOME_LOJA, RespostaLoja } from '../lib/loja'
 import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
 import { Logo, Lua, Seta, Sol } from '../components/Icones'
@@ -89,7 +90,7 @@ export default function Painel({ tela }: { tela: Tela }) {
             recarregar={() => cliente && carregar(cliente)}
           />
         )}
-        {tela === 'loja' && <LojaEmBreve sugestao={sugestao} />}
+        {tela === 'loja' && <Loja sugestao={sugestao} estado={estado} />}
         {tela === 'colecao' && (
           <Colecao
             cliente={cliente}
@@ -577,23 +578,81 @@ function Colecao({ cliente, sugestao, aoMudar }: {
   )
 }
 
-/* ---------- Loja (em breve) ---------- */
+/* ---------- Loja ---------- */
 
-function LojaEmBreve({ sugestao }: { sugestao: Sugestao | null }) {
-  const pede = sugestao?.tempo === 'FRIO' ? 'frio' : 'calor'
+function Loja({ sugestao, estado }: { sugestao: Sugestao | null; estado: Estado }) {
+  const [resposta, setResposta] = useState<RespostaLoja | null>(null)
+  const [erro, setErro] = useState(false)
+  const tempo = sugestao?.tempo
+
+  const carregar = useCallback(async () => {
+    setErro(false)
+    try {
+      setResposta(await buscarLoja(tempo))
+    } catch {
+      setErro(true)
+    }
+  }, [tempo])
+
+  // Espera a sugestão do dia (pra saber o clima) antes de pedir a Loja
+  useEffect(() => {
+    if (estado !== 'carregando') carregar()
+  }, [estado, carregar])
+
   return (
-    <section className="painel-pagina">
+    <section className="painel-pagina loja">
       <h2 className="painel-titulo-pagina">Loja</h2>
-      <p className="texto-2">Perfumes escolhidos a partir da sua coleção e do clima.</p>
-      <div className="cartao-suave">
-        <span className="painel-rotulo">Em breve</span>
-        <strong>Sugestões que completam sua coleção</strong>
-        <p>
-          A odri vai olhar o que falta no seu armário (por exemplo, um perfume pra {pede}) e mostrar 3 opções,
-          de preços diferentes, nas lojas parceiras.
-        </p>
-      </div>
-      <p className="painel-dica">Links de parceiros: a odri pode ganhar comissão, sem mudar o seu preço.</p>
+      <p className="texto-2">
+        {resposta ? resposta.titulo : 'Perfumes que faltam na sua coleção'}: um barato, um médio e um caro.
+      </p>
+
+      {erro && (
+        <div className="cartao-suave">
+          <strong>Não conseguimos abrir a Loja</strong>
+          <button type="button" className="botao botao-escuro botao-mini loja-tentar" onClick={carregar}>
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      {!erro && !resposta && <p className="painel-dica">Carregando…</p>}
+
+      {resposta && resposta.ofertas.length === 0 && (
+        <div className="cartao-suave">
+          <span className="painel-rotulo">Tudo certo</span>
+          <strong>Sua coleção já tem o que a Loja sugere pra hoje</strong>
+          <p>Volte outro dia: quando o clima mudar, aparecem outras opções.</p>
+        </div>
+      )}
+
+      {resposta && resposta.ofertas.length > 0 && (
+        <ul className="painel-lista loja-lista">
+          {resposta.ofertas.map((o) => {
+            const faixa = NOME_FAIXA[o.faixa]
+            return (
+              <li key={o.id} className="analise-item colecao-item loja-item">
+                <span className="painel-rotulo">{faixa.nivel} · {faixa.preco}</span>
+                <span><strong>{o.nome}</strong> <span className="apagado">{o.marca}</span></span>
+                <p className="analise-motivo">
+                  {NOME_FAMILIA[o.familia] ?? o.familia} · {NOME_INTENSIDADE[o.intensidade] ?? o.intensidade}
+                </p>
+                <a
+                  className="botao botao-escuro botao-mini loja-ver"
+                  href={o.link}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                >
+                  Ver {o.loja ? NOME_LOJA[o.loja] : 'na loja'}
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <p className="painel-dica">
+        Links de parceiros: a odri pode ganhar comissão, sem mudar o seu preço. O preço final aparece na loja.
+      </p>
     </section>
   )
 }

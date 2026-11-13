@@ -747,6 +747,12 @@ button { font: inherit; color: inherit; }
 .colecao-confirma span { margin-right: auto; }
 .botao-mini { height: 38px; padding: 0 14px; font-size: 14px; }
 
+/* Loja */
+.loja { width: 100%; align-items: stretch; }
+.loja-item { gap: 6px; }
+.loja-ver { align-self: flex-start; margin-top: 4px; display: inline-flex; align-items: center; text-decoration: none; }
+.loja-tentar { align-self: flex-start; margin-top: 6px; }
+
 /* Minha conta */
 .conta-pagina { width: 100%; align-items: stretch; }
 .conta-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
