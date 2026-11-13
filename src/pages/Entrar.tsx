@@ -19,6 +19,7 @@ export default function Entrar() {
   const [erro, setErro] = useState('')
   const [aviso, setAviso] = useState('')
   const [naoConfirmado, setNaoConfirmado] = useState(false)
+  const [faltando, setFaltando] = useState({ email: false, senha: false })
 
   // Depois do login: garante o cadastro no back-end e abre o app
   async function seguirParaOApp() {
@@ -58,6 +59,12 @@ export default function Entrar() {
     setErro('')
     setAviso('')
     setNaoConfirmado(false)
+
+    const falta = { email: !email.trim(), senha: !senha }
+    setFaltando(falta)
+    if (falta.email && falta.senha) return setErro('Preencha o e-mail e a senha.')
+    if (falta.email) return setErro('Preencha o e-mail.')
+    if (falta.senha) return setErro('Preencha a senha.')
 
     setEnviando(true)
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
@@ -101,8 +108,8 @@ export default function Entrar() {
           <span>E-mail</span>
           <input
             type="email" autoComplete="email" inputMode="email" required
-            value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="voce@email.com"
+            value={email} onChange={(e) => { setEmail(e.target.value); setFaltando((f) => ({ ...f, email: false })) }}
+            placeholder="voce@email.com" aria-invalid={faltando.email}
           />
         </label>
 
@@ -111,7 +118,8 @@ export default function Entrar() {
           <div className="campo-senha">
             <input
               type={mostrarSenha ? 'text' : 'password'} autoComplete="current-password" required
-              value={senha} onChange={(e) => setSenha(e.target.value)}
+              value={senha} onChange={(e) => { setSenha(e.target.value); setFaltando((f) => ({ ...f, senha: false })) }}
+              aria-invalid={faltando.senha}
             />
             <button
               type="button" className="campo-mostrar"

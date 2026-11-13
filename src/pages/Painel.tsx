@@ -3,7 +3,9 @@ import type { FormEvent, ReactNode } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ErroApi } from '../lib/api'
-import { apagarConta, Cliente, garantirCadastro, jaComecou, marcarComecou, mudarNome } from '../lib/cadastro'
+import {
+  apagarConta, Cliente, garantirCadastro, jaComecou, marcarComecou, mudarNome, mudarPreferencia, Preferencia, PREFERENCIAS,
+} from '../lib/cadastro'
 import { ItemColecao, listarColecao, mensagemColecao, tirarDaColecao } from '../lib/colecao'
 import {
   buscarSugestao, corDaTemperatura, ItemAnalise, NOME_FAMILIA, NOME_INTENSIDADE,
@@ -16,6 +18,7 @@ import {
 import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
 import Frasco from '../components/Frasco'
+import AdesivoStory from '../components/AdesivoStory'
 import { Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 
 type Tela = 'hoje' | 'colecao' | 'loja' | 'conta'
@@ -94,7 +97,7 @@ export default function Painel({ tela }: { tela: Tela }) {
             recarregar={() => cliente && carregar(cliente)}
           />
         )}
-        {tela === 'loja' && <Loja />}
+        {tela === 'loja' && <Loja preferencia={cliente?.preferencia ?? null} />}
         {tela === 'colecao' && (
           <Colecao
             cliente={cliente}
@@ -280,6 +283,9 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
       <div className="painel-grade" data-aba={aba}>
         <div className="painel-col painel-col-hoje">
           <MelhorDoDia sugestao={sugestao} />
+          {sugestao.perfume && (
+            <AdesivoStory perfume={sugestao.perfume.nome} temperatura={sugestao.temperatura} local={sugestao.local} />
+          )}
           {sugestao.nadaCombina
             ? <DicaLoja tempo={sugestao.tempo} titulo="Falta na sua coleção" />
             : <OutraOpcao sugestao={sugestao} />}
@@ -610,9 +616,17 @@ const LOJA_CURTA = { AMAZON: 'Amazon', MERCADO_LIVRE: 'Mercado Livre' } as const
 
 const GENEROS: [Genero | '', string][] = [['', 'Todos'], ['MASCULINO', 'Masculino'], ['FEMININO', 'Feminino']]
 
-function Loja() {
+/** A Loja abre filtrada pela preferência da pessoa ("os dois" ou sem resposta = Todos). */
+const generoDaPreferencia = (p: Preferencia | null): Genero | '' => (p === 'MASCULINO' || p === 'FEMININO' ? p : '')
+
+function Loja({ preferencia }: { preferencia: Preferencia | null }) {
   const [busca, setBusca] = useState('')
-  const [genero, setGenero] = useState<Genero | ''>('')
+  const [genero, setGenero] = useState<Genero | ''>(generoDaPreferencia(preferencia))
+  const mexeuNoFiltro = useRef(false)
+  // O cliente pode chegar depois da tela abrir: aplica a preferência se a pessoa ainda não escolheu outro filtro
+  useEffect(() => {
+    if (!mexeuNoFiltro.current) setGenero(generoDaPreferencia(preferencia))
+  }, [preferencia])
   const [ordem, setOrdem] = useState<OrdemPreco>('menor')
   const [itens, setItens] = useState<Oferta[] | null>(null)
   const [erro, setErro] = useState(false)
@@ -649,7 +663,7 @@ function Loja() {
             {GENEROS.map(([valor, nome]) => (
               <button
                 key={nome} type="button" className="colecao-filtro"
-                aria-pressed={genero === valor} onClick={() => setGenero(valor)}
+                aria-pressed={genero === valor} onClick={() => { mexeuNoFiltro.current = true; setGenero(valor) }}
               >
                 {nome}
               </button>
@@ -684,7 +698,7 @@ function Loja() {
           {(busca || genero) && (
             <button
               type="button" className="botao botao-contorno botao-mini loja-tentar"
-              onClick={() => { setBusca(''); setGenero('') }}
+              onClick={() => { mexeuNoFiltro.current = true; setBusca(''); setGenero('') }}
             >
               Limpar busca
             </button>
@@ -819,6 +833,10 @@ function Conta({ cliente, aoMudarCliente }: {
   const [salvandoNome, setSalvandoNome] = useState(false)
   const [recadoNome, setRecadoNome] = useState<Recado>(null)
 
+  // Que perfume usa
+  const [salvandoPref, setSalvandoPref] = useState(false)
+  const [recadoPref, setRecadoPref] = useState<Recado>(null)
+
   // Senha
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
@@ -851,6 +869,20 @@ function Conta({ cliente, aoMudarCliente }: {
       setRecadoNome({ tipo: 'erro', texto: 'Não deu para salvar agora. Tente de novo.' })
     } finally {
       setSalvandoNome(false)
+    }
+  }
+
+  async function salvarPreferencia(p: Preferencia) {
+    if (!cliente || p === cliente.preferencia) return
+    setRecadoPref(null)
+    setSalvandoPref(true)
+    try {
+      aoMudarCliente(await mudarPreferencia(p))
+      setRecadoPref({ tipo: 'ok', texto: 'Salvo. As dicas da Loja seguem essa escolha.' })
+    } catch {
+      setRecadoPref({ tipo: 'erro', texto: 'Não deu para salvar agora. Tente de novo.' })
+    } finally {
+      setSalvandoPref(false)
     }
   }
 
@@ -926,6 +958,24 @@ function Conta({ cliente, aoMudarCliente }: {
         </button>
       </form>
 
+      <div className="painel-bloco">
+        <h3 className="painel-subtitulo">Que perfume você usa?</h3>
+        {cliente && !cliente.preferencia && (
+          <p className="texto-2">Responda pra receber dicas da Loja do seu jeito.</p>
+        )}
+        <div className="colecao-filtros escolha-preferencia-botoes" role="group" aria-label="Que perfume você usa">
+          {PREFERENCIAS.map(([valor, nome]) => (
+            <button
+              key={valor} type="button" className="colecao-filtro" disabled={salvandoPref || !cliente}
+              aria-pressed={cliente?.preferencia === valor} onClick={() => salvarPreferencia(valor)}
+            >
+              {nome}
+            </button>
+          ))}
+        </div>
+        {recadoPref && <p className={recadoPref.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoPref.texto}</p>}
+      </div>
+
       <form className="painel-bloco" onSubmit={salvarSenha} noValidate>
         <h3 className="painel-subtitulo">Trocar senha</h3>
         <label className="campo">
@@ -933,7 +983,7 @@ function Conta({ cliente, aoMudarCliente }: {
           <div className="campo-senha">
             <input
               type={mostrarSenha ? 'text' : 'password'} autoComplete="new-password"
-              minLength={SENHA_MINIMA} placeholder={`Senha nova (pelo menos ${SENHA_MINIMA} caracteres)`}
+              minLength={SENHA_MINIMA} placeholder={`Mínimo ${SENHA_MINIMA} caracteres`}
               value={senha} onChange={(e) => setSenha(e.target.value)}
             />
             <button
