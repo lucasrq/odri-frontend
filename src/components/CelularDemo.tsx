@@ -8,6 +8,7 @@ import {
   type Periodo,
   type PerfumeExemplo,
 } from '../lib/sugestao'
+import Frasco from './Frasco'
 import { Fechar, Local, Trocar } from './Icones'
 
 export interface CidadeExemplo {
@@ -15,17 +16,25 @@ export interface CidadeExemplo {
   graus: number
 }
 
-// Perfumes de exemplo (nomes genéricos, sem marca)
+// Coleção de exemplo com perfumes reais (a ordem desempata a sugestão)
 const COLECAO: PerfumeExemplo[] = [
-  { nome: 'Cítrico Fresco', familia: 'Cítrico', intensidade: 'LEVE', clima: 'CALOR' },
-  { nome: 'Floral Suave', familia: 'Floral', intensidade: 'MEDIA', clima: 'TODOS' },
-  { nome: 'Amadeirado Noturno', familia: 'Amadeirado', intensidade: 'FORTE', clima: 'FRIO' },
-  { nome: 'Aquático Leve', familia: 'Fresco', intensidade: 'LEVE', clima: 'TODOS' },
+  { nome: 'Kaiak', marca: 'Natura', chave: 'FRESCO', familia: 'Fresco', intensidade: 'LEVE', clima: 'CALOR' },
+  { nome: 'Malbec', marca: 'O Boticário', chave: 'AMADEIRADO', familia: 'Amadeirado', intensidade: 'FORTE', clima: 'FRIO' },
+  { nome: 'Egeo Dolce', marca: 'O Boticário', chave: 'DOCE', familia: 'Doce', intensidade: 'MEDIA', clima: 'TODOS' },
+  { nome: 'CK One', marca: 'Calvin Klein', chave: 'CITRICO', familia: 'Cítrico', intensidade: 'LEVE', clima: 'TODOS' },
+]
+
+// Mini vitrine da aba Loja
+const VITRINE = [
+  { nome: 'Acqua di Giò', marca: 'Giorgio Armani', chave: 'FRESCO', intensidade: 'MEDIA', cifras: 3 },
+  { nome: 'Yara', marca: 'Lattafa', chave: 'DOCE', intensidade: 'MEDIA', cifras: 2 },
+  { nome: 'Floratta Blue', marca: 'O Boticário', chave: 'FLORAL', intensidade: 'LEVE', cifras: 1 },
+  { nome: 'Bleu de Chanel', marca: 'Chanel', chave: 'AMADEIRADO', intensidade: 'MEDIA', cifras: 3 },
 ]
 
 const SAUDACOES = ['Bom dia!', 'Boa tarde!', 'Boa noite!']
 const TEMPO_NOME = { CALOR: 'Calor', FRIO: 'Frio', AMENO: 'Ameno' }
-const ABAS = ['Hoje', 'Coleção', 'Conta'] as const
+const ABAS = ['Hoje', 'Coleção', 'Loja'] as const
 
 interface Props {
   cidade: CidadeExemplo
@@ -41,7 +50,7 @@ interface Props {
 export default function CelularDemo({ cidade, periodo, onTrocarCidade, onPeriodo }: Props) {
   const [aba, setAba] = useState(0)
   const [trocado, setTrocado] = useState(false)
-  const [cidadeFixa, setCidadeFixa] = useState(false)
+  const [genero, setGenero] = useState(0)
 
   const ranking = ranquear(COLECAO, cidade.graus, periodo)
   const [escolhido, segundo] = trocado ? [ranking[1], ranking[0]] : [ranking[0], ranking[1]]
@@ -94,8 +103,14 @@ export default function CelularDemo({ cidade, periodo, onTrocarCidade, onPeriodo
 
                 {/* key: o cartão "respira" a cada sugestão nova */}
                 <div className="cel-sugestao" key={`${escolhido.nome}-${periodo}-${cidade.nome}`}>
-                  <p className="cel-rotulo"><span className="bolinha" />Perfume de hoje</p>
-                  <p className="cel-perfume">{escolhido.nome}</p>
+                  <div className="cel-sugestao-topo">
+                    <div>
+                      <p className="cel-rotulo"><span className="bolinha" />Perfume de hoje</p>
+                      <p className="cel-perfume">{escolhido.nome}</p>
+                      <p className="cel-marca">{escolhido.marca}</p>
+                    </div>
+                    <Frasco familia={escolhido.chave} intensidade={escolhido.intensidade} tamanho={40} />
+                  </div>
                   <p className="cel-motivo">{motivo(escolhido, cidade.graus, periodo)}</p>
                   <div className="cel-tags">
                     <span>{escolhido.familia}</span>
@@ -118,7 +133,8 @@ export default function CelularDemo({ cidade, periodo, onTrocarCidade, onPeriodo
                 </div>
                 {[...COLECAO].sort((a, b) => a.nome.localeCompare(b.nome)).map((p) => (
                   <div key={p.nome} className="cel-item">
-                    <div>
+                    <Frasco familia={p.chave} intensidade={p.intensidade} tamanho={22} />
+                    <div className="cel-item-texto">
                       <p className="cel-item-nome">{p.nome}</p>
                       <p className="cel-pequeno">{p.familia} · {INTENSIDADE_CURTA[p.intensidade]}</p>
                     </div>
@@ -132,28 +148,33 @@ export default function CelularDemo({ cidade, periodo, onTrocarCidade, onPeriodo
 
             {aba === 2 && (
               <>
-                <p className="cel-titulo">Sua conta</p>
-                <p className="cel-secao">Onde você está</p>
-                {[
-                  { titulo: 'Automático', sub: 'Usa a localização do celular', fixa: false },
-                  { titulo: 'Cidade fixa', sub: cidade.nome, fixa: true },
-                ].map((op) => (
-                  <button
-                    key={op.titulo}
-                    type="button"
-                    className={`cel-opcao toque ${op.fixa === cidadeFixa ? 'ativo' : ''}`}
-                    aria-pressed={op.fixa === cidadeFixa}
-                    onClick={() => setCidadeFixa(op.fixa)}
-                  >
-                    <span><strong>{op.titulo}</strong><span className="cel-pequeno">{op.sub}</span></span>
-                    <span className="cel-radio"><span /></span>
-                  </button>
-                ))}
-                <p className="cel-secao">Plano</p>
-                <div className="cel-item">
-                  <strong>Grátis</strong>
-                  <span className="selo selo-destaque">Plus em breve</span>
+                <p className="cel-titulo">Loja</p>
+                <div className="cel-busca">Buscar por nome ou marca</div>
+                <div role="group" aria-label="Gênero" className="cel-generos">
+                  {['Todos', 'Masculino', 'Feminino'].map((g, i) => (
+                    <button
+                      key={g} type="button" className={`toque ${i === genero ? 'ativo' : ''}`}
+                      aria-pressed={i === genero} onClick={() => setGenero(i)}
+                    >
+                      {g}
+                    </button>
+                  ))}
                 </div>
+                <div className="cel-vitrine">
+                  {VITRINE.map((v) => (
+                    <div key={v.nome} className="cel-vitrine-item">
+                      <div className={`cel-vitrine-frasco fundo-${v.chave.toLowerCase()}`}>
+                        <Frasco familia={v.chave} intensidade={v.intensidade} tamanho={30} />
+                      </div>
+                      <p className="cel-item-nome">{v.nome}</p>
+                      <p className="cel-pequeno">{v.marca}</p>
+                      <span className="cel-cifras" aria-label={`Preço ${v.cifras} de 3`}>
+                        {[1, 2, 3].map((n) => <i key={n} className={n <= v.cifras ? 'cheia' : ''} />)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="cel-pequeno cel-centro">Links de parceiros</p>
               </>
             )}
           </div>

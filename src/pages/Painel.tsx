@@ -9,10 +9,14 @@ import {
   buscarSugestao, corDaTemperatura, ItemAnalise, NOME_FAMILIA, NOME_INTENSIDADE,
   NOME_PERIODO, NOME_SELO, pegarLocalizacao, SAUDACAO, Sugestao,
 } from '../lib/painel'
-import { buscarLoja, NOME_FAIXA, NOME_LOJA, RespostaLoja } from '../lib/loja'
+import {
+  buscarCatalogo, buscarLoja, Genero, marcarDicaMostrada, NOME_FAIXA, NOME_GENERO, NOME_LOJA, Oferta, OrdemPreco,
+  ORDEM_FAIXA, podeMostrarDica,
+} from '../lib/loja'
 import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
-import { Logo, Lua, Seta, Sol } from '../components/Icones'
+import Frasco from '../components/Frasco'
+import { Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 
 type Tela = 'hoje' | 'colecao' | 'loja' | 'conta'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
@@ -90,7 +94,7 @@ export default function Painel({ tela }: { tela: Tela }) {
             recarregar={() => cliente && carregar(cliente)}
           />
         )}
-        {tela === 'loja' && <Loja sugestao={sugestao} estado={estado} />}
+        {tela === 'loja' && <Loja />}
         {tela === 'colecao' && (
           <Colecao
             cliente={cliente}
@@ -223,6 +227,11 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
   recarregar: () => void
 }) {
   const [aba, setAba] = useState<'hoje' | 'analise'>('hoje')
+  // Dica da Loja num dia normal: decide uma vez ao abrir (no máximo 1 a cada 3 dias)
+  const [dicaHoje, setDicaHoje] = useState(false)
+  const idCliente = cliente?.id
+  useEffect(() => { if (idCliente) setDicaHoje(podeMostrarDica(idCliente)) }, [idCliente])
+  const marcarDica = useCallback(() => { if (cliente) marcarDicaMostrada(cliente.id) }, [cliente])
 
   if (estado === 'carregando') {
     return <div className="cartao-tinta cartao-carregando" aria-busy="true"><p>Escolhendo seu perfume…</p></div>
@@ -271,7 +280,12 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
       <div className="painel-grade" data-aba={aba}>
         <div className="painel-col painel-col-hoje">
           <MelhorDoDia sugestao={sugestao} />
-          {sugestao.nadaCombina ? <FaltaNaColecao sugestao={sugestao} /> : <OutraOpcao sugestao={sugestao} />}
+          {sugestao.nadaCombina
+            ? <DicaLoja tempo={sugestao.tempo} titulo="Falta na sua coleção" />
+            : <OutraOpcao sugestao={sugestao} />}
+          {!sugestao.nadaCombina && dicaHoje && (
+            <DicaLoja tempo={sugestao.tempo} titulo="Uma dica pra sua coleção" aoMostrar={marcarDica} />
+          )}
           {adicionar}
         </div>
 
@@ -302,9 +316,14 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
           <span className={nadaCombina ? 'cartao-nota cartao-nota-fraca' : 'cartao-nota'}>{item.nota}% combina</span>
         )}
       </div>
-      <div>
-        <p className="cartao-nome">{perfume.nome}</p>
-        <p className="cartao-marca">{perfume.marca}</p>
+      <div className="cartao-perfume">
+        <div>
+          <p className="cartao-nome">{perfume.nome}</p>
+          <p className="cartao-marca">{perfume.marca}</p>
+        </div>
+        {item?.familia && (
+          <Frasco familia={item.familia} intensidade={item.intensidade} tamanho={50} />
+        )}
       </div>
       <p className="cartao-texto">
         {nadaCombina ? `${item?.motivo ?? ''} Hoje, use pouco: 1 borrifada no pescoço.` : sugestao.motivo}
@@ -331,20 +350,6 @@ function OutraOpcao({ sugestao }: { sugestao: Sugestao }) {
         {item.nota != null && <span className="numero">{item.nota}%</span>}
       </div>
     </section>
-  )
-}
-
-function FaltaNaColecao({ sugestao }: { sugestao: Sugestao }) {
-  const pede = sugestao.tempo === 'FRIO' ? 'pra dias frios' : 'pra dias quentes'
-  return (
-    <Link to="/app/loja" className="cartao-falta">
-      <span>
-        <span className="painel-rotulo destaque-texto">Falta na sua coleção</span>
-        <strong>Um perfume {pede}</strong>
-        <span className="apagado">Ver sugestões · links de parceiros</span>
-      </span>
-      <Seta />
-    </Link>
   )
 }
 
@@ -390,8 +395,8 @@ function Analise({ sugestao }: { sugestao: Sugestao }) {
 
       <Link to="/app/loja" className="cartao-loja-discreto">
         <span>
-          <strong>Sugestões pra sua coleção</strong>
-          <span className="apagado">Ver na Loja · links de parceiros</span>
+          <strong>Conhecer a Loja</strong>
+          <span className="apagado">Masculinos e femininos · links de parceiros</span>
         </span>
         <Seta />
       </Link>
@@ -463,6 +468,12 @@ function Colecao({ cliente, sugestao, aoMudar }: {
     }
   }
 
+  function focarBusca() {
+    const campo = document.querySelector<HTMLInputElement>('.colecao-busca input')
+    campo?.focus()
+    campo?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
   function depoisDeAdicionar() {
     carregarLista()
     aoMudar()
@@ -483,12 +494,7 @@ function Colecao({ cliente, sugestao, aoMudar }: {
       <div className="colecao-cabeca">
         <h2 id="titulo-colecao" className="painel-titulo-pagina">Sua coleção</h2>
         {gratis && itens && (
-          <div className="colecao-limite">
-            <div className="analise-barra" role="img" aria-label={`${total} de ${LIMITE_GRATIS} perfumes`}>
-              <div className="colecao-limite-cheia" style={{ width: `${Math.min(100, (total / LIMITE_GRATIS) * 100)}%` }} />
-            </div>
-            <p className="painel-dica">{total} de {LIMITE_GRATIS} perfumes no plano grátis</p>
-          </div>
+          <p className="painel-dica">{total} de {LIMITE_GRATIS} lugares ocupados no plano grátis</p>
         )}
       </div>
 
@@ -499,7 +505,7 @@ function Colecao({ cliente, sugestao, aoMudar }: {
           <p>Tire um perfume para colocar outro. No Plus, que chega em breve, a coleção não tem limite.</p>
         </div>
       ) : (
-        <div className="painel-bloco">
+        <div className="painel-bloco colecao-busca">
           <h3 className="painel-subtitulo">Adicionar perfume</h3>
           <BuscaPerfume
             naColecao={(itens ?? []).map((p) => p.id)}
@@ -527,7 +533,7 @@ function Colecao({ cliente, sugestao, aoMudar }: {
       {itens && itens.length > 0 && lista.length === 0 && <p className="painel-dica">Nenhum perfume neste filtro.</p>}
 
       {lista.length > 0 && (
-        <ul className="painel-lista">
+        <ul className="prateleira">
           {lista.map((p) => {
             const a = analise.get(p.id)
             const selo = p.pendente ? 'EM_ANALISE' : a?.selo
@@ -537,40 +543,60 @@ function Colecao({ cliente, sugestao, aoMudar }: {
             ].filter(Boolean).join(' · ')
 
             return (
-              <li key={p.id} className="analise-item colecao-item">
-                <div className="analise-topo">
-                  <span><strong>{p.nome}</strong> <span className="apagado">{p.marca}</span></span>
+              <li key={p.id} className="prateleira-item">
+                <div className={`prateleira-frasco fundo-${(a?.familia ?? 'nenhuma').toLowerCase()}`}>
+                  <Frasco familia={a?.familia} intensidade={a?.intensidade} pendente={p.pendente} tamanho={58} />
+                </div>
+                <div className="prateleira-info">
+                  <strong>{p.nome}</strong>
+                  <span className="apagado">{p.marca}</span>
+                  <span className="prateleira-detalhe">
+                    {p.pendente ? 'A gente está classificando' : detalhes}
+                  </span>
                   {selo && <span className={`selo-analise selo-${selo.toLowerCase()}`}>{NOME_SELO[selo]}</span>}
                 </div>
-                {p.pendente
-                  ? <p className="analise-motivo">A gente está classificando este perfume.</p>
-                  : detalhes && <p className="analise-motivo">{detalhes}</p>}
 
                 {confirmando === p.id ? (
-                  <div className="colecao-confirma">
-                    <span>Tirar da coleção?</span>
-                    <button type="button" className="botao botao-contorno botao-mini" onClick={() => setConfirmando(null)}>
-                      Não
-                    </button>
-                    <button
-                      type="button" className="botao botao-escuro botao-mini"
-                      disabled={tirando === p.id} onClick={() => tirar(p.id)}
-                    >
-                      {tirando === p.id ? 'Tirando…' : 'Sim, tirar'}
-                    </button>
+                  <div className="prateleira-confirma">
+                    <span>Tirar {p.nome} da coleção?</span>
+                    <div>
+                      <button type="button" className="botao botao-contorno botao-mini" onClick={() => setConfirmando(null)}>
+                        Não
+                      </button>
+                      <button
+                        type="button" className="botao botao-escuro botao-mini"
+                        disabled={tirando === p.id} onClick={() => tirar(p.id)}
+                      >
+                        {tirando === p.id ? 'Tirando…' : 'Sim, tirar'}
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
-                    type="button" className="colecao-tirar"
+                    type="button" className="prateleira-tirar"
                     onClick={() => setConfirmando(p.id)} aria-label={`Tirar ${p.nome} da coleção`}
                   >
-                    Tirar
+                    <Fechar tamanho={16} />
                   </button>
                 )}
               </li>
             )
           })}
+
+          {/* Lugares livres do grátis: mostram quanto ainda cabe */}
+          {filtro === 'todos' && gratis && !cheia && Array.from({ length: LIMITE_GRATIS - total }, (_, i) => (
+            <li key={`livre-${i}`} className="prateleira-livre">
+              <button type="button" onClick={focarBusca} aria-label="Adicionar perfume">
+                <Mais tamanho={20} />
+                <span>Lugar livre</span>
+              </button>
+            </li>
+          ))}
         </ul>
+      )}
+
+      {itens && itens.length > 0 && sugestao && (
+        <DicaLoja tempo={sugestao.tempo} titulo="Combinaria com a sua coleção" />
       )}
 
       {erro && <p className="conta-erro" role="alert">{erro}</p>}
@@ -580,31 +606,65 @@ function Colecao({ cliente, sugestao, aoMudar }: {
 
 /* ---------- Loja ---------- */
 
-function Loja({ sugestao, estado }: { sugestao: Sugestao | null; estado: Estado }) {
-  const [resposta, setResposta] = useState<RespostaLoja | null>(null)
+const LOJA_CURTA = { AMAZON: 'Amazon', MERCADO_LIVRE: 'Mercado Livre' } as const
+
+const GENEROS: [Genero | '', string][] = [['', 'Todos'], ['MASCULINO', 'Masculino'], ['FEMININO', 'Feminino']]
+
+function Loja() {
+  const [busca, setBusca] = useState('')
+  const [genero, setGenero] = useState<Genero | ''>('')
+  const [ordem, setOrdem] = useState<OrdemPreco>('menor')
+  const [itens, setItens] = useState<Oferta[] | null>(null)
   const [erro, setErro] = useState(false)
-  const tempo = sugestao?.tempo
 
   const carregar = useCallback(async () => {
     setErro(false)
     try {
-      setResposta(await buscarLoja(tempo))
+      setItens(await buscarCatalogo({ busca, genero, ordem }))
     } catch {
       setErro(true)
     }
-  }, [tempo])
+  }, [busca, genero, ordem])
 
-  // Espera a sugestão do dia (pra saber o clima) antes de pedir a Loja
+  // Espera a pessoa parar de digitar (250 ms) antes de buscar
   useEffect(() => {
-    if (estado !== 'carregando') carregar()
-  }, [estado, carregar])
+    const espera = setTimeout(carregar, busca ? 250 : 0)
+    return () => clearTimeout(espera)
+  }, [carregar, busca])
 
   return (
-    <section className="painel-pagina loja">
-      <h2 className="painel-titulo-pagina">Loja</h2>
-      <p className="texto-2">
-        {resposta ? resposta.titulo : 'Perfumes que faltam na sua coleção'}: um barato, um médio e um caro.
-      </p>
+    <section className="painel-pagina loja" aria-labelledby="titulo-loja">
+      <h2 id="titulo-loja" className="painel-titulo-pagina">Loja</h2>
+
+      <div className="loja-controles">
+        <label className="campo loja-busca">
+          <span className="sr-only">Buscar perfume</span>
+          <input
+            type="search" value={busca} onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome ou marca" autoComplete="off"
+          />
+        </label>
+        <div className="loja-linha">
+          <div className="colecao-filtros" role="group" aria-label="Filtrar por gênero">
+            {GENEROS.map(([valor, nome]) => (
+              <button
+                key={nome} type="button" className="colecao-filtro"
+                aria-pressed={genero === valor} onClick={() => setGenero(valor)}
+              >
+                {nome}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button" className="loja-ordem"
+            onClick={() => setOrdem((o) => (o === 'menor' ? 'maior' : 'menor'))}
+            aria-label={`Ordenar por preço: agora ${ordem === 'menor' ? 'menor' : 'maior'} primeiro`}
+          >
+            <IconeOrdem invertido={ordem === 'maior'} />
+            {ordem === 'menor' ? 'Menor preço' : 'Maior preço'}
+          </button>
+        </div>
+      </div>
 
       {erro && (
         <div className="cartao-suave">
@@ -615,38 +675,26 @@ function Loja({ sugestao, estado }: { sugestao: Sugestao | null; estado: Estado 
         </div>
       )}
 
-      {!erro && !resposta && <p className="painel-dica">Carregando…</p>}
+      {!erro && itens === null && <p className="painel-dica">Carregando…</p>}
 
-      {resposta && resposta.ofertas.length === 0 && (
+      {!erro && itens?.length === 0 && (
         <div className="cartao-suave">
-          <span className="painel-rotulo">Tudo certo</span>
-          <strong>Sua coleção já tem o que a Loja sugere pra hoje</strong>
-          <p>Volte outro dia: quando o clima mudar, aparecem outras opções.</p>
+          <strong>Nenhum perfume encontrado</strong>
+          <p>{busca ? `Nada com "${busca}" por enquanto. Tente outro nome ou marca.` : 'Ainda não temos perfumes nessa categoria.'}</p>
+          {(busca || genero) && (
+            <button
+              type="button" className="botao botao-contorno botao-mini loja-tentar"
+              onClick={() => { setBusca(''); setGenero('') }}
+            >
+              Limpar busca
+            </button>
+          )}
         </div>
       )}
 
-      {resposta && resposta.ofertas.length > 0 && (
-        <ul className="painel-lista loja-lista">
-          {resposta.ofertas.map((o) => {
-            const faixa = NOME_FAIXA[o.faixa]
-            return (
-              <li key={o.id} className="analise-item colecao-item loja-item">
-                <span className="painel-rotulo">{faixa.nivel} · {faixa.preco}</span>
-                <span><strong>{o.nome}</strong> <span className="apagado">{o.marca}</span></span>
-                <p className="analise-motivo">
-                  {NOME_FAMILIA[o.familia] ?? o.familia} · {NOME_INTENSIDADE[o.intensidade] ?? o.intensidade}
-                </p>
-                <a
-                  className="botao botao-escuro botao-mini loja-ver"
-                  href={o.link}
-                  target="_blank"
-                  rel="noopener noreferrer sponsored"
-                >
-                  Ver {o.loja ? NOME_LOJA[o.loja] : 'na loja'}
-                </a>
-              </li>
-            )
-          })}
+      {itens && itens.length > 0 && (
+        <ul className="vitrine catalogo">
+          {itens.map((o) => <CartaoOferta key={o.id} oferta={o} />)}
         </ul>
       )}
 
@@ -654,6 +702,103 @@ function Loja({ sugestao, estado }: { sugestao: Sugestao | null; estado: Estado 
         Links de parceiros: a odri pode ganhar comissão, sem mudar o seu preço. O preço final aparece na loja.
       </p>
     </section>
+  )
+}
+
+function CartaoOferta({ oferta: o }: { oferta: Oferta }) {
+  const cifras = ORDEM_FAIXA[o.faixa]
+  return (
+    <li className="vitrine-item">
+      <div className={`vitrine-frasco fundo-${o.familia.toLowerCase()}`}>
+        <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={70} />
+        {o.naColecao && <span className="vitrine-tenho">Na sua coleção</span>}
+      </div>
+      <div className="vitrine-info">
+        <h3 className="vitrine-nome">{o.nome}</h3>
+        <span className="apagado">{o.marca}</span>
+        <p className="vitrine-faixa">
+          <span className="vitrine-cifras" aria-hidden="true">
+            {[1, 2, 3].map((n) => <i key={n} className={n <= cifras ? 'cheia' : ''} />)}
+          </span>
+          {NOME_FAIXA[o.faixa].preco}
+        </p>
+        {o.genero && <span className="vitrine-genero">{NOME_GENERO[o.genero]}</span>}
+        <a
+          className={`botao botao-mini vitrine-ver ${o.naColecao ? 'botao-contorno' : 'botao-escuro'}`}
+          href={o.link} target="_blank" rel="noopener noreferrer sponsored"
+        >
+          {o.loja ? LOJA_CURTA[o.loja] : 'Ver na loja'} <Seta tamanho={16} />
+        </a>
+      </div>
+    </li>
+  )
+}
+
+/**
+ * Uma sugestão da Loja no meio do app (Hoje e Coleção): 1 perfume que a pessoa não tem
+ * e que combina com o clima de agora. Some sozinha se não houver nada pra sugerir.
+ */
+function DicaLoja({ tempo, titulo, aoMostrar }: {
+  tempo?: string
+  titulo: string
+  aoMostrar?: () => void
+}) {
+  const [oferta, setOferta] = useState<Oferta | null>(null)
+  const avisou = useRef(false)
+
+  useEffect(() => {
+    let ativo = true
+    buscarLoja(tempo)
+      .then((r) => {
+        if (!ativo || r.ofertas.length === 0) return
+        setOferta(r.ofertas[Math.floor(Math.random() * r.ofertas.length)])
+      })
+      .catch(() => {})
+    return () => { ativo = false }
+  }, [tempo])
+
+  useEffect(() => {
+    if (oferta && !avisou.current) {
+      avisou.current = true
+      aoMostrar?.()
+    }
+  }, [oferta, aoMostrar])
+
+  if (!oferta) return null
+  const porque = tempo === 'CALOR' ? 'aguenta bem o calor'
+    : tempo === 'FRIO' ? 'esquenta nos dias frios'
+    : 'vai bem no clima de hoje'
+
+  return (
+    <section className="dica-loja" aria-label={titulo}>
+      <div className={`vitrine-frasco fundo-${oferta.familia.toLowerCase()}`}>
+        <Frasco familia={oferta.familia} intensidade={oferta.intensidade} tamanho={46} />
+      </div>
+      <div className="dica-loja-texto">
+        <h3>{titulo}</h3>
+        <p><strong>{oferta.nome}</strong> <span className="apagado">{oferta.marca}</span></p>
+        <p className="apagado">
+          {NOME_FAMILIA[oferta.familia] ?? oferta.familia}, intensidade {(NOME_INTENSIDADE[oferta.intensidade] ?? '').toLowerCase()}: {porque}.
+        </p>
+        <div className="dica-loja-acoes">
+          <a className="botao botao-escuro botao-mini vitrine-ver" href={oferta.link} target="_blank" rel="noopener noreferrer sponsored">
+            Ver {oferta.loja ? NOME_LOJA[oferta.loja] : 'na loja'} <Seta tamanho={16} />
+          </a>
+          <Link to="/app/loja" className="dica-loja-mais">Ver a Loja</Link>
+        </div>
+        <span className="dica-loja-parceiro">Link de parceiro</span>
+      </div>
+    </section>
+  )
+}
+
+function IconeOrdem({ invertido }: { invertido: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+      style={{ transform: invertido ? 'scaleY(-1)' : undefined, transition: 'transform 0.3s' }}>
+      <path d="M7 4v16M3 8l4-4 4 4M14 8h7M14 13h5M14 18h3" />
+    </svg>
   )
 }
 

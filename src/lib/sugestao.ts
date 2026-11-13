@@ -10,6 +10,9 @@ export type Periodo = 0 | 1 | 2 // manhã, tarde, noite
 
 export interface PerfumeExemplo {
   nome: string
+  marca?: string
+  /** FRESCO, CITRICO... (cor do frasco) */
+  chave?: string
   familia: string
   intensidade: Intensidade
   clima: ClimaPerfume
