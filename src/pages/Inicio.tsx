@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import CelularDemo, { type CidadeExemplo } from '../components/CelularDemo'
 import { Cadeado, Check, IconeApp, Logo, Mais, Seta } from '../components/Icones'
+import Frasco from '../components/Frasco'
 import Topo from '../components/Topo'
 import type { Periodo } from '../lib/sugestao'
 import { useRevela } from '../lib/useRevela'
@@ -11,6 +12,15 @@ const CIDADES: CidadeExemplo[] = [
   { nome: 'São Paulo', graus: 22 },
   { nome: 'Salvador', graus: 30 },
   { nome: 'Curitiba', graus: 13 },
+]
+
+const FAMILIAS = [
+  { chave: 'FRESCO', nome: 'Fresco', intensidade: 'LEVE', exemplo: 'Kaiak, Acqua di Giò' },
+  { chave: 'CITRICO', nome: 'Cítrico', intensidade: 'LEVE', exemplo: 'CK One, Light Blue' },
+  { chave: 'FLORAL', nome: 'Floral', intensidade: 'MEDIA', exemplo: 'Floratta Blue' },
+  { chave: 'DOCE', nome: 'Doce', intensidade: 'MEDIA', exemplo: 'Egeo Dolce, Yara' },
+  { chave: 'AMADEIRADO', nome: 'Amadeirado', intensidade: 'FORTE', exemplo: 'Malbec, Bleu de Chanel' },
+  { chave: 'ORIENTAL', nome: 'Oriental', intensidade: 'FORTE', exemplo: 'Good Girl' },
 ]
 
 const OCASIOES = ['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
@@ -43,7 +53,6 @@ export default function Inicio() {
         {/* Abertura */}
         <section id="inicio" className="container hero">
           <div className="hero-texto">
-            <p className="sobretitulo entra" style={ordem(0)}><span className="bolinha" />Grátis · funciona no navegador do celular</p>
             <h1 className="entra" style={ordem(1)}>Qual perfume eu uso <span className="serif destaque">hoje?</span></h1>
             <p className="hero-sub entra" style={ordem(2)}>
               A odri olha o clima da sua cidade e a hora do dia e escolhe, entre os perfumes que você já tem, o que combina agora. Com o motivo.
@@ -94,7 +103,6 @@ export default function Inicio() {
         {/* Como funciona */}
         <section id="como-funciona" className="container secao">
           <div className="cabeca-secao revela">
-            <p className="sobretitulo">Como funciona</p>
             <h2 className="titulo-secao">Monte uma vez. <span className="serif">Use todo dia.</span></h2>
           </div>
           <div className="grade-3">
@@ -116,11 +124,38 @@ export default function Inicio() {
           </div>
         </section>
 
+        {/* Famílias: o desenho do frasco */}
+        <section className="container secao secao-colada">
+          <div className="cabeca-secao revela">
+            <h2 className="titulo-secao">Cada cor, uma família. <span className="serif destaque">Cada nível, a força.</span></h2>
+            <p className="texto-2">
+              Na odri, cada perfume vira um frasco. A cor mostra a família e o líquido mostra a intensidade.
+              Você entende a sua coleção num olhar, sem saber nada de perfumaria.
+            </p>
+          </div>
+          <ul className="familias revela">
+            {FAMILIAS.map((f) => (
+              <li key={f.chave} className={`familia fundo-${f.chave.toLowerCase()}`}>
+                <Frasco familia={f.chave} intensidade={f.intensidade} tamanho={56} />
+                <strong>{f.nome}</strong>
+                <span>{f.exemplo}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="intensidades revela" aria-label="Leve, média e forte">
+            {(['LEVE', 'MEDIA', 'FORTE'] as const).map((i) => (
+              <div key={i}>
+                <Frasco familia="NENHUMA" intensidade={i} tamanho={30} />
+                <span>{i === 'LEVE' ? 'Leve' : i === 'MEDIA' ? 'Média' : 'Forte'}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Clima */}
         <section className="faixa-escura">
           <div className="container secao">
             <div className="cabeca-secao revela">
-              <p className="sobretitulo">Clima</p>
               <h2 className="titulo-secao">O mesmo perfume muda com o tempo <span className="serif">lá fora.</span></h2>
               <p className="texto-invertido-2">Calor faz o perfume espalhar mais. Frio segura. A odri usa a temperatura de verdade da sua cidade, atualizada ao longo do dia.</p>
             </div>
@@ -142,7 +177,6 @@ export default function Inicio() {
         {/* Planos */}
         <section id="planos" className="container secao">
           <div className="cabeca-secao revela">
-            <p className="sobretitulo">Planos</p>
             <h2 className="titulo-secao">Comece de graça. <span className="serif">Fique se gostar.</span></h2>
           </div>
           <div className="grade-planos">

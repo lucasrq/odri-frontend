@@ -29,7 +29,9 @@ export default function Topo() {
           </button>
           {/* Fica visível também no celular: quem já tem conta entra direto */}
           <Link to="/entrar" className="topo-entrar">Entrar</Link>
-          <Link to="/criar-conta" className="botao botao-escuro botao-pequeno">Começar grátis</Link>
+          <Link to="/criar-conta" className="botao botao-escuro botao-pequeno topo-comecar">
+            <span>Começar<span className="so-tela-larga"> grátis</span></span>
+          </Link>
         </nav>
       </div>
     </header>
