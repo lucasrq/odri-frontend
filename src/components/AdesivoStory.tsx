@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { baixarAdesivo, CorAdesivo, nomeDoArquivo } from '../lib/adesivo'
+import { registrarEvento, TipoEvento } from '../lib/eventos'
 
 type Imagens = Record<CorAdesivo, { blob: Blob; url: string }>
 
@@ -8,13 +9,14 @@ type Imagens = Record<CorAdesivo, { blob: Blob; url: string }>
  * Fechado: uma linha com o botão. Aberto: as duas versões e os botões de baixar.
  * "gerar" desenha a imagem; "chave" muda quando o conteúdo muda (aí desenha de novo).
  */
-export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, chave, gerar }: {
+export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, chave, gerar, evento }: {
   titulo: string
   texto: string
   nomeArquivo: string
   descricao: string
   chave: string
   gerar: (cor: CorAdesivo) => Promise<Blob>
+  evento: TipoEvento // conta nos números do Admin
 }) {
   const [aberto, setAberto] = useState(false)
   const [imagens, setImagens] = useState<Imagens | null>(null)
@@ -80,7 +82,11 @@ export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, ch
             </div>
             <button
               type="button" className="botao botao-contorno botao-mini" disabled={!imagens}
-              onClick={() => imagens && baixarAdesivo(imagens[cor].blob, nomeDoArquivo(nomeArquivo, cor))}
+              onClick={() => {
+                if (!imagens) return
+                registrarEvento(evento, { detalhe: cor })
+                baixarAdesivo(imagens[cor].blob, nomeDoArquivo(nomeArquivo, cor))
+              }}
             >
               Baixar {cor}
             </button>

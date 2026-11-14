@@ -1113,3 +1113,12 @@ button { font: inherit; color: inherit; }
 .admin-grupo .colecao-filtro { padding: 7px 12px; font-size: 13px; }
 .admin-acoes { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
 .admin > .campo { align-self: stretch; }
+.admin-numeros { display: flex; flex-direction: column; gap: 10px; }
+.admin-caixas { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 720px) { .admin-caixas { grid-template-columns: repeat(3, 1fr); } }
+.admin-caixa { display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: 18px; background: var(--superficie); border: 1px solid var(--borda); min-width: 0; }
+.admin-caixa strong { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.admin-caixa .apagado { font-size: 13px; }
+.admin-ranking { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; counter-reset: pos; }
+.admin-ranking li { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.admin-exportar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
