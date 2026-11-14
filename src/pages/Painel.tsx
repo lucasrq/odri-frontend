@@ -19,9 +19,12 @@ import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
 import Frasco from '../components/Frasco'
 import AdesivoStory from '../components/AdesivoStory'
+import AdminPerfumes from '../components/AdminPerfumes'
+import { gerarAdesivo, gerarAdesivoColecao } from '../lib/adesivo'
+import { ehAdmin } from '../lib/admin'
 import { Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 
-type Tela = 'hoje' | 'colecao' | 'loja' | 'conta'
+type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
 
 const LIMITE_GRATIS = 8
@@ -107,6 +110,7 @@ export default function Painel({ tela }: { tela: Tela }) {
         )}
 
         {tela === 'conta' && <Conta cliente={cliente} aoMudarCliente={setCliente} />}
+        {tela === 'admin' && <AdminPerfumes />}
 
         {sugestao && <p className="painel-credito">{sugestao.creditoClima}</p>}
       </main>
@@ -125,7 +129,12 @@ function Topo({ cliente }: { cliente: Cliente | null }) {
   const escuro = tema === 'escuro'
   const navegar = useNavigate()
   const [menu, setMenu] = useState(false)
+  const [admin, setAdmin] = useState(false)
   const caixa = useRef<HTMLDivElement>(null)
+
+  // Link "Admin" no menu só pra quem é admin (o back responde 403 pro resto)
+  const temCliente = !!cliente
+  useEffect(() => { if (temCliente) ehAdmin().then(setAdmin).catch(() => {}) }, [temCliente])
 
   // Fecha o menu ao clicar fora
   useEffect(() => {
@@ -173,6 +182,7 @@ function Topo({ cliente }: { cliente: Cliente | null }) {
               </div>
               <Link role="menuitem" to="/app/conta">Minha conta</Link>
               <Link role="menuitem" to="/app/comecar">Cidade: {cliente?.cidade ?? 'automática'}</Link>
+              {admin && <Link role="menuitem" to="/app/admin">Admin</Link>}
               <a role="menuitem" href="/#planos" className="destaque-texto">Conhecer o Plus</a>
               <button type="button" role="menuitem" onClick={sair}>Sair</button>
             </div>
@@ -283,9 +293,7 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
       <div className="painel-grade" data-aba={aba}>
         <div className="painel-col painel-col-hoje">
           <MelhorDoDia sugestao={sugestao} />
-          {sugestao.perfume && (
-            <AdesivoStory perfume={sugestao.perfume.nome} temperatura={sugestao.temperatura} local={sugestao.local} />
-          )}
+          {sugestao.perfume && <AdesivoDoDia perfume={sugestao.perfume.nome} sugestao={sugestao} />}
           {sugestao.nadaCombina
             ? <DicaLoja tempo={sugestao.tempo} titulo="Falta na sua coleção" />
             : <OutraOpcao sugestao={sugestao} />}
@@ -340,6 +348,34 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
         <span>{NOME_PERIODO[sugestao.periodo]}</span>
       </div>
     </section>
+  )
+}
+
+function AdesivoDoDia({ perfume, sugestao }: { perfume: string; sugestao: Sugestao }) {
+  const { temperatura, local } = sugestao
+  const linha = temperatura !== null && local ? `${Math.round(temperatura)} °C em ${local}` : local ? `Em ${local}` : ''
+  return (
+    <AdesivoStory
+      titulo="Poste no seu story"
+      texto="Um adesivo com o perfume de hoje, pra colocar na sua foto."
+      nomeArquivo={perfume}
+      descricao={`Hoje eu vou de ${perfume}. ${linha}`}
+      chave={perfume + linha}
+      gerar={(cor) => gerarAdesivo(perfume, linha, cor)}
+    />
+  )
+}
+
+function AdesivoColecao({ perfumes }: { perfumes: { nome: string; familia: string | null }[] }) {
+  return (
+    <AdesivoStory
+      titulo="Mostre sua coleção"
+      texto="Um adesivo com os seus perfumes, pra postar no story."
+      nomeArquivo="minha-colecao"
+      descricao={`Minha coleção: ${perfumes.map((p) => p.nome).join(', ')}`}
+      chave={perfumes.map((p) => p.nome + p.familia).join('|')}
+      gerar={(cor) => gerarAdesivoColecao(perfumes, cor)}
+    />
   )
 }
 
@@ -599,6 +635,14 @@ function Colecao({ cliente, sugestao, aoMudar }: {
             </li>
           ))}
         </ul>
+      )}
+
+      {itens && itens.some((p) => !p.pendente) && (
+        <AdesivoColecao
+          perfumes={itens.filter((p) => !p.pendente).map((p) => ({
+            nome: p.nome, familia: sugestao?.analise.find((a) => a.id === p.id)?.familia ?? null,
+          }))}
+        />
       )}
 
       {itens && itens.length > 0 && sugestao && (

@@ -1099,3 +1099,17 @@ button { font: inherit; color: inherit; }
 .adesivo-fundo-preto { background: radial-gradient(ellipse at 70% 85%, rgba(120, 90, 60, 0.22), transparent 60%), linear-gradient(160deg, #F4EBDD, #DCC8AC); }
 .adesivo-carregando { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.7); }
 .adesivo-fundo-preto .adesivo-carregando { color: rgba(23, 25, 28, 0.6); }
+
+/* Admin */
+.admin-lista { list-style: none; display: flex; flex-direction: column; gap: 10px; padding: 0; }
+.admin-item { gap: 14px; }
+.admin-cabeca { display: flex; align-items: center; gap: 12px; }
+.admin-cabeca .frasco { flex: none; }
+.admin-nome { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; font-size: 15px; }
+.admin-nome .apagado { font-size: 13px; }
+.admin-form { display: flex; flex-direction: column; gap: 14px; }
+.admin-grupo { border: 0; padding: 0; margin: 0; min-width: 0; }
+.admin-grupo legend { padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--apagado); }
+.admin-grupo .colecao-filtro { padding: 7px 12px; font-size: 13px; }
+.admin-acoes { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.admin > .campo { align-self: stretch; }

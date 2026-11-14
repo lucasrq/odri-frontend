@@ -1,31 +1,31 @@
 import { useEffect, useState } from 'react'
-import { baixarAdesivo, CorAdesivo, gerarAdesivo, nomeDoArquivo } from '../lib/adesivo'
+import { baixarAdesivo, CorAdesivo, nomeDoArquivo } from '../lib/adesivo'
 
 type Imagens = Record<CorAdesivo, { blob: Blob; url: string }>
 
 /**
- * "Hoje eu vou de <perfume>." pro story, com fundo transparente.
+ * Adesivo pro story, com fundo transparente (branco pra foto escura, preto pra foto clara).
  * Fechado: uma linha com o botão. Aberto: as duas versões e os botões de baixar.
+ * "gerar" desenha a imagem; "chave" muda quando o conteúdo muda (aí desenha de novo).
  */
-export default function AdesivoStory({ perfume, temperatura, local }: {
-  perfume: string
-  temperatura: number | null
-  local: string | null
+export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, chave, gerar }: {
+  titulo: string
+  texto: string
+  nomeArquivo: string
+  descricao: string
+  chave: string
+  gerar: (cor: CorAdesivo) => Promise<Blob>
 }) {
   const [aberto, setAberto] = useState(false)
   const [imagens, setImagens] = useState<Imagens | null>(null)
   const [erro, setErro] = useState(false)
 
-  const linha = temperatura !== null && local ? `${Math.round(temperatura)} °C em ${local}`
-    : local ? `Em ${local}` : ''
-
-  // Só desenha quando abre (e de novo se o perfume do dia mudar)
   useEffect(() => {
     if (!aberto) return
     let ativo = true
     let urls: string[] = []
     setErro(false)
-    Promise.all((['branco', 'preto'] as const).map((cor) => gerarAdesivo(perfume, linha, cor)))
+    Promise.all((['branco', 'preto'] as const).map((cor) => gerar(cor)))
       .then(([branco, preto]) => {
         if (!ativo) return
         const novo = {
@@ -41,15 +41,17 @@ export default function AdesivoStory({ perfume, temperatura, local }: {
       urls.forEach((u) => URL.revokeObjectURL(u))
       setImagens(null)
     }
-  }, [aberto, perfume, linha])
+    // "gerar" muda a cada render; "chave" é quem diz se o conteúdo mudou
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, chave])
 
   if (!aberto) {
     return (
       <section className="painel-bloco adesivo">
         <div className="adesivo-linha">
           <span>
-            <strong>Poste no seu story</strong>
-            <span className="apagado">Um adesivo com o perfume de hoje, pra colocar na sua foto.</span>
+            <strong>{titulo}</strong>
+            <span className="apagado">{texto}</span>
           </span>
           <button type="button" className="botao botao-escuro botao-mini" onClick={() => setAberto(true)}>
             Criar adesivo
@@ -60,9 +62,9 @@ export default function AdesivoStory({ perfume, temperatura, local }: {
   }
 
   return (
-    <section className="painel-bloco adesivo" aria-label="Adesivo pro story">
+    <section className="painel-bloco adesivo" aria-label={titulo}>
       <div className="adesivo-linha">
-        <strong>Adesivo pro story</strong>
+        <strong>{titulo}</strong>
         <button type="button" className="adesivo-fechar" onClick={() => setAberto(false)}>Fechar</button>
       </div>
 
@@ -73,12 +75,12 @@ export default function AdesivoStory({ perfume, temperatura, local }: {
           <div key={cor} className="adesivo-opcao">
             <div className={`adesivo-fundo adesivo-fundo-${cor}`}>
               {imagens
-                ? <img src={imagens[cor].url} alt={`Adesivo ${cor}: Hoje eu vou de ${perfume}. ${linha}`} />
+                ? <img src={imagens[cor].url} alt={`Adesivo ${cor}: ${descricao}`} />
                 : <span className="adesivo-carregando">Criando…</span>}
             </div>
             <button
               type="button" className="botao botao-contorno botao-mini" disabled={!imagens}
-              onClick={() => imagens && baixarAdesivo(imagens[cor].blob, nomeDoArquivo(perfume, cor))}
+              onClick={() => imagens && baixarAdesivo(imagens[cor].blob, nomeDoArquivo(nomeArquivo, cor))}
             >
               Baixar {cor}
             </button>
