@@ -22,6 +22,7 @@ import AdesivoStory from '../components/AdesivoStory'
 import AdminPerfumes from '../components/AdminPerfumes'
 import { gerarAdesivo, gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
+import { registrarEvento } from '../lib/eventos'
 import { Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 
 type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
@@ -362,6 +363,7 @@ function AdesivoDoDia({ perfume, sugestao }: { perfume: string; sugestao: Sugest
       descricao={`Hoje eu vou de ${perfume}. ${linha}`}
       chave={perfume + linha}
       gerar={(cor) => gerarAdesivo(perfume, linha, cor)}
+      evento="ADESIVO_DIA"
     />
   )
 }
@@ -375,6 +377,7 @@ function AdesivoColecao({ perfumes }: { perfumes: { nome: string; familia: strin
       descricao={`Minha coleção: ${perfumes.map((p) => p.nome).join(', ')}`}
       chave={perfumes.map((p) => p.nome + p.familia).join('|')}
       gerar={(cor) => gerarAdesivoColecao(perfumes, cor)}
+      evento="ADESIVO_COLECAO"
     />
   )
 }
@@ -784,6 +787,7 @@ function CartaoOferta({ oferta: o }: { oferta: Oferta }) {
         <a
           className={`botao botao-mini vitrine-ver ${o.naColecao ? 'botao-contorno' : 'botao-escuro'}`}
           href={o.link} target="_blank" rel="noopener noreferrer sponsored"
+          onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe: 'loja' })}
         >
           {o.loja ? LOJA_CURTA[o.loja] : 'Ver na loja'} <Seta tamanho={16} />
         </a>
@@ -839,7 +843,10 @@ function DicaLoja({ tempo, titulo, aoMostrar }: {
           {NOME_FAMILIA[oferta.familia] ?? oferta.familia}, intensidade {(NOME_INTENSIDADE[oferta.intensidade] ?? '').toLowerCase()}: {porque}.
         </p>
         <div className="dica-loja-acoes">
-          <a className="botao botao-escuro botao-mini vitrine-ver" href={oferta.link} target="_blank" rel="noopener noreferrer sponsored">
+          <a
+            className="botao botao-escuro botao-mini vitrine-ver" href={oferta.link} target="_blank" rel="noopener noreferrer sponsored"
+            onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: oferta.id, detalhe: 'dica' })}
+          >
             Ver {oferta.loja ? NOME_LOJA[oferta.loja] : 'na loja'} <Seta tamanho={16} />
           </a>
           <Link to="/app/loja" className="dica-loja-mais">Ver a Loja</Link>

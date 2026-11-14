@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
 import {
-  Classificacao, ehAdmin, listarCatalogoAdmin, listarPendentes, NOME_CLIMA, PerfumeAdmin, recusarPerfume, salvarPerfume,
+  buscarNumeros, Classificacao, ehAdmin, listarCatalogoAdmin, listarPendentes, NOME_CLIMA, Numeros, PerfumeAdmin,
+  recusarPerfume, salvarPerfume, textoPendentes,
 } from '../lib/admin'
 import { ErroApi } from '../lib/api'
 import { NOME_FAIXA, NOME_GENERO } from '../lib/loja'
@@ -61,6 +62,8 @@ export default function AdminPerfumes() {
     <section className="painel-pagina admin" aria-labelledby="titulo-admin">
       <h2 id="titulo-admin" className="painel-titulo-pagina">Admin</h2>
 
+      {permitido && <PainelNumeros />}
+
       <div className="colecao-filtros" role="tablist" aria-label="Admin">
         <button type="button" role="tab" className="colecao-filtro" aria-pressed={aba === 'pendentes'} aria-selected={aba === 'pendentes'} onClick={() => setAba('pendentes')}>
           Pendentes{pendentes ? ` (${pendentes.length})` : ''}
@@ -69,6 +72,15 @@ export default function AdminPerfumes() {
           Catálogo
         </button>
       </div>
+
+      {aba === 'pendentes' && pendentes && pendentes.length > 0 && (
+        <div className="admin-exportar">
+          <button type="button" className="botao botao-escuro botao-mini" onClick={() => baixarTexto(pendentes)}>
+            Baixar pendentes (.txt)
+          </button>
+          <span className="painel-dica">Cole o arquivo no Claude, pegue o SQL e rode no Supabase.</span>
+        </div>
+      )}
 
       {aba === 'catalogo' && (
         <label className="campo">
@@ -89,6 +101,67 @@ export default function AdminPerfumes() {
         </ul>
       )}
     </section>
+  )
+}
+
+/** Baixa o .txt com as regras + lista, pra colar no Claude. */
+function baixarTexto(lista: PerfumeAdmin[]) {
+  const hoje = new Date()
+  const blob = new Blob([textoPendentes(lista, hoje)], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  // data local (a de toISOString é UTC: depois das 21h já vira o dia seguinte)
+  const dia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`
+  link.download = `odri-pendentes-${dia}.txt`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}
+
+/** Cadastros, assinantes, adesivos baixados e cliques na Loja. */
+function PainelNumeros() {
+  const [n, setN] = useState<Numeros | null>(null)
+  const [erro, setErro] = useState(false)
+  useEffect(() => { buscarNumeros().then(setN).catch(() => setErro(true)) }, [])
+
+  if (erro) return <p className="painel-dica">Não deu para carregar os números agora.</p>
+  if (!n) return <p className="painel-dica">Carregando números…</p>
+
+  const caixas: [string, number, string][] = [
+    ['Cadastros', n.cadastrosTotal, `+${n.cadastrosSemana} na semana · ${n.cadastrosHoje} hoje`],
+    ['Assinantes Plus', n.assinantes, 'com o Plus valendo agora'],
+    ['Adesivo do dia', n.adesivoDiaTotal, `+${n.adesivoDiaSemana} na semana`],
+    ['Adesivo da coleção', n.adesivoColecaoTotal, `+${n.adesivoColecaoSemana} na semana`],
+    ['Cliques na Loja', n.cliquesLojaTotal, `+${n.cliquesLojaSemana} na semana`],
+    ['Perfumes na Loja', n.naLoja, `${n.pendentes} pendente${n.pendentes === 1 ? '' : 's'}`],
+  ]
+  return (
+    <div className="admin-numeros">
+      <ul className="admin-caixas">
+        {caixas.map(([rotulo, valor, sub]) => (
+          <li key={rotulo} className="admin-caixa">
+            <span className="painel-rotulo">{rotulo}</span>
+            <strong className="numero">{valor.toLocaleString('pt-BR')}</strong>
+            <span className="apagado">{sub}</span>
+          </li>
+        ))}
+      </ul>
+      {n.maisClicados.length > 0 && (
+        <div className="painel-bloco">
+          <span className="painel-rotulo">Mais clicados na Loja (30 dias)</span>
+          <ol className="admin-ranking">
+            {n.maisClicados.map((p) => (
+              <li key={p.nome + p.marca}>
+                <span><strong>{p.nome}</strong> <span className="apagado">{p.marca}</span></span>
+                <span className="numero">{p.cliques}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
   )
 }
 
