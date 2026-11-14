@@ -1065,3 +1065,37 @@ button { font: inherit; color: inherit; }
   .secao { padding-top: 72px; padding-bottom: 72px; }
   .cartao, .plano { padding: 26px; }
 }
+
+/* Que perfume você usa (Criar conta e Minha conta) */
+.escolha-preferencia { border: 0; padding: 0; margin: 0; min-width: 0; }
+.escolha-preferencia legend { padding: 0; margin-bottom: 6px; }
+.escolha-preferencia .colecao-filtros, .escolha-preferencia-botoes { flex-wrap: nowrap; }
+.escolha-preferencia .colecao-filtro, .escolha-preferencia-botoes .colecao-filtro { flex: 1; padding: 12px 8px; white-space: nowrap; }
+.escolha-preferencia-botoes .colecao-filtro:disabled { cursor: wait; }
+
+/* Campo que faltou preencher */
+.campo input[aria-invalid="true"] { border-color: #D64545; }
+
+/* Botão desativado: continua com cara de botão, só fica "vazio" */
+.conta-botao:disabled {
+  opacity: 1; cursor: default; filter: none;
+  background: transparent; color: var(--apagado); border: 1.5px solid var(--borda-forte);
+}
+
+/* Adesivo do story */
+.adesivo-linha { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.adesivo-linha > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 15px; }
+.adesivo-linha .botao { flex: none; }
+.adesivo-fechar { border: 0; background: none; padding: 6px 0; font: inherit; font-size: 14px; font-weight: 700; color: var(--apagado); cursor: pointer; }
+.adesivo-fechar:hover { color: var(--texto); }
+.adesivo-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.adesivo-opcao { display: flex; flex-direction: column; gap: 10px; }
+.adesivo-opcao .botao { width: 100%; }
+.adesivo-fundo {
+  aspect-ratio: 4 / 5; border-radius: 18px; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden;
+}
+.adesivo-fundo img { width: 100%; height: auto; display: block; }
+.adesivo-fundo-branco { background: radial-gradient(circle at 30% 25%, rgba(255, 170, 90, 0.45), transparent 30%), linear-gradient(170deg, #3a2a3a, #141116); }
+.adesivo-fundo-preto { background: radial-gradient(ellipse at 70% 85%, rgba(120, 90, 60, 0.22), transparent 60%), linear-gradient(160deg, #F4EBDD, #DCC8AC); }
+.adesivo-carregando { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.7); }
+.adesivo-fundo-preto .adesivo-carregando { color: rgba(23, 25, 28, 0.6); }

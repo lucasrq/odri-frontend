@@ -1,12 +1,20 @@
 import { api, ErroApi } from './api'
 import { supabase } from './supabase'
 
+/** Que perfume a pessoa usa. Decide o gênero das dicas e o filtro inicial da Loja. */
+export type Preferencia = 'MASCULINO' | 'FEMININO' | 'OS_DOIS'
+
+export const PREFERENCIAS: [Preferencia, string][] = [
+  ['MASCULINO', 'Masculino'], ['FEMININO', 'Feminino'], ['OS_DOIS', 'Os dois'],
+]
+
 /** O que GET /clientes/eu devolve (ClienteDTO do back-end). */
 export type Cliente = {
   id: string
   nome: string
   plus: boolean
   cidade: string | null
+  preferencia: Preferencia | null // null = conta antiga que ainda não respondeu
 }
 
 /**
@@ -34,6 +42,11 @@ export function marcarComecou(id: string) {
 /** PUT /clientes/eu/nome: muda o nome e devolve o cliente atualizado. */
 export function mudarNome(nome: string) {
   return api<Cliente>('/clientes/eu/nome', { method: 'PUT', body: JSON.stringify({ nome }) })
+}
+
+/** PUT /clientes/eu/preferencia: masculino, feminino ou os dois. */
+export function mudarPreferencia(preferencia: Preferencia) {
+  return api<Cliente>('/clientes/eu/preferencia', { method: 'PUT', body: JSON.stringify({ preferencia }) })
 }
 
 /**
@@ -72,6 +85,7 @@ export async function garantirCadastro(): Promise<Cliente> {
     body: JSON.stringify({
       nome: (dados.nome as string | undefined)?.trim() || email.split('@')[0],
       aceitouTermos: dados.aceitou_termos === true,
+      preferencia: PREFERENCIAS.some(([v]) => v === dados.preferencia) ? dados.preferencia : null,
     }),
   })
 }

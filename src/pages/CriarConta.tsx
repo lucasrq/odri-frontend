@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Logo, Seta } from '../components/Icones'
+import { Preferencia, PREFERENCIAS } from '../lib/cadastro'
 
 const SENHA_MINIMA = 8
 
@@ -16,6 +17,7 @@ export default function CriarConta() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [preferencia, setPreferencia] = useState<Preferencia | ''>('')
   const [aceitou, setAceitou] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
@@ -26,6 +28,7 @@ export default function CriarConta() {
     setErro('')
 
     if (nome.trim().length < 2) return setErro('Escreva seu nome.')
+    if (!preferencia) return setErro('Escolha que perfume você usa.')
     if (senha.length < SENHA_MINIMA) return setErro(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`)
     if (!aceitou) return setErro('Para criar a conta, aceite a Política de Privacidade.')
 
@@ -36,7 +39,7 @@ export default function CriarConta() {
       options: {
         // O link do e-mail de confirmação traz a pessoa de volta pra cá
         emailRedirectTo: `${window.location.origin}/entrar`,
-        data: { nome: nome.trim(), aceitou_termos: true },
+        data: { nome: nome.trim(), aceitou_termos: true, preferencia },
       },
     })
     setEnviando(false)
@@ -79,7 +82,6 @@ export default function CriarConta() {
         <div className="conta-cabeca">
           <h1>Crie sua <span className="serif destaque">conta.</span></h1>
           <p className="texto-2">É grátis. Em 1 minuto você descobre qual perfume usar hoje.</p>
-          <p className="conta-ja-tem">Já tem conta? <Link to="/entrar">Entrar</Link></p>
         </div>
 
         <label className="campo">
@@ -90,6 +92,20 @@ export default function CriarConta() {
             placeholder="Como quer ser chamado"
           />
         </label>
+
+        <fieldset className="campo escolha-preferencia">
+          <legend>Que perfume você usa?</legend>
+          <div className="colecao-filtros">
+            {PREFERENCIAS.map(([valor, nome]) => (
+              <button
+                key={valor} type="button" className="colecao-filtro"
+                aria-pressed={preferencia === valor} onClick={() => setPreferencia(valor)}
+              >
+                {nome}
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
         <label className="campo">
           <span>E-mail</span>
