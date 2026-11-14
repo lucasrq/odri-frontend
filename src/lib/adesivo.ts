@@ -103,6 +103,75 @@ export async function gerarAdesivo(perfume: string, linha: string, cor: CorAdesi
   return new Promise((ok, falha) => canvas.toBlob((b) => (b ? ok(b) : falha(new Error('sem imagem'))), 'image/png'))
 }
 
+/** Cor do líquido de cada família (igual ao --fam-* do CSS). */
+export const COR_FAMILIA: Record<string, string> = {
+  FRESCO: '#6FA8C4', CITRICO: '#E2BC45', FLORAL: '#E098A8', DOCE: '#D99A5B', AMADEIRADO: '#96694A', ORIENTAL: '#8C4459',
+}
+
+/**
+ * "Minha coleção": um perfume por linha, com o ponto da cor da família, e o odri no fim.
+ * Mostra no máximo 8 (o resto vira "+ N").
+ */
+export async function gerarAdesivoColecao(perfumes: { nome: string; familia: string | null }[], cor: CorAdesivo): Promise<Blob> {
+  await Promise.all([
+    document.fonts.load('800 64px Figtree'),
+    document.fonts.load('800 36px Figtree'),
+  ]).catch(() => {})
+
+  const c = CORES[cor]
+  const lista = perfumes.slice(0, 8)
+  const sobra = perfumes.length - lista.length
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d') as Ctx
+
+  const T = 64
+  const PONTO = 13
+  const RECUO = 44
+  fonte(ctx, 800, 36)
+  const titulo = `Minha coleção · ${perfumes.length}`
+  const larguraTitulo = ctx.measureText(titulo).width
+  fonte(ctx, 800, T, -T * 0.04)
+  const maior = Math.max(0, ...lista.map((p) => ctx.measureText(p.nome).width))
+  const tamanho = maior + RECUO > LARGURA_MAX ? Math.max(36, (T * (LARGURA_MAX - RECUO)) / maior) : T
+  const passo = tamanho * 1.22
+  const largura = Math.max(larguraTitulo, RECUO + maior * (tamanho / T))
+
+  const topo = MARGEM + 36
+  const primeira = topo + 26 + tamanho * 0.9
+  const ultima = primeira + (lista.length - 1) * passo + (sobra > 0 ? 50 : 0)
+  const alturaLogo = 45
+  const baseLogo = ultima + 34 + alturaLogo
+
+  canvas.width = Math.ceil((largura + MARGEM * 2) * ESCALA)
+  canvas.height = Math.ceil((baseLogo + MARGEM) * ESCALA)
+  ctx.scale(ESCALA, ESCALA)
+  ctx.shadowColor = c.sombra
+  ctx.shadowBlur = c.desfoque
+  ctx.shadowOffsetY = 2
+
+  ctx.fillStyle = c.texto
+  fonte(ctx, 800, 36)
+  ctx.fillText(titulo, MARGEM, topo)
+
+  fonte(ctx, 800, tamanho, -tamanho * 0.04)
+  lista.forEach((p, i) => {
+    const y = primeira + i * passo
+    ctx.fillStyle = COR_FAMILIA[p.familia ?? ''] ?? c.texto
+    ctx.beginPath()
+    ctx.arc(MARGEM + PONTO, y - tamanho * 0.34, PONTO * (tamanho / T), 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = c.texto
+    ctx.fillText(p.nome, MARGEM + RECUO, y)
+  })
+  if (sobra > 0) {
+    fonte(ctx, 700, 32)
+    ctx.fillText(`+ ${sobra}`, MARGEM + RECUO, ultima)
+  }
+  desenharLogo(ctx, MARGEM, baseLogo - (88.5 / 106) * alturaLogo, alturaLogo, c.texto, c.ponto)
+
+  return new Promise((ok, falha) => canvas.toBlob((b) => (b ? ok(b) : falha(new Error('sem imagem'))), 'image/png'))
+}
+
 /**
  * Celular: abre a janela de compartilhar (tem "Salvar imagem", que vai pra galeria).
  * Computador: baixa o arquivo.
