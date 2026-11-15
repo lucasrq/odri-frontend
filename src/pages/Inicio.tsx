@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import CelularDemo, { type CidadeExemplo } from '../components/CelularDemo'
 import { Cadeado, Check, IconeApp, Logo, Mais, Seta } from '../components/Icones'
 import Frasco from '../components/Frasco'
+import ReguaDia from '../components/ReguaDia'
 import Topo from '../components/Topo'
 import type { Periodo } from '../lib/sugestao'
 import { useRevela } from '../lib/useRevela'
@@ -23,7 +24,16 @@ const FAMILIAS = [
   { chave: 'ORIENTAL', nome: 'Oriental', intensidade: 'FORTE', exemplo: 'Good Girl' },
 ]
 
-const OCASIOES = ['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
+const NIVEL: Record<string, string> = { LEVE: 'Leve', MEDIA: 'Média', FORTE: 'Forte' }
+
+// "O perfume certo na hora errada": na ordem do dia, com o frasco que não combina
+const PROBLEMAS = [
+  { hora: '8h', pos: 16, valor: '8h', erro: 'Forte', efeito: 'elevador lotado', texto: 'De manhã e em lugar fechado, menos é mais.', familia: 'AMADEIRADO', intensidade: 'FORTE' },
+  { hora: '14h', pos: 50, valor: '31 °C', erro: 'Doce', efeito: 'enjoo', texto: 'No calor, o doce pesa e incomoda quem está do lado.', familia: 'DOCE', intensidade: 'MEDIA' },
+  { hora: '22h', pos: 84, valor: '22h', erro: 'Leve', efeito: 'sumiu', texto: 'À noite dá pra caprichar. Leve demais ninguém sente.', familia: 'FRESCO', intensidade: 'LEVE' },
+]
+
+const OCASIOES =['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
 
 const DUVIDAS = [
   { p: 'É grátis mesmo?', r: 'Sim. O plano grátis não tem prazo e não pede cartão. Você usa até 8 perfumes e recebe a sugestão de manhã, de tarde e de noite.' },
@@ -84,18 +94,23 @@ export default function Inicio() {
         <section className="faixa-clara">
           <div className="container secao">
             <h2 className="revela titulo-secao estreito">O perfume certo na hora errada <span className="serif">estraga o dia.</span></h2>
-            <div className="grade-3">
-              {[
-                { n: '31 °C', t: '+ perfume doce = enjoo', d: 'No calor, o doce fica pesado e incomoda quem está do lado.' },
-                { n: '8h', t: '+ perfume forte = elevador lotado', d: 'De manhã e em lugar fechado, menos é mais.' },
-                { n: '22h', t: '+ perfume leve = sumiu', d: 'À noite dá pra caprichar. Um leve demais ninguém sente.' },
-              ].map((c) => (
-                <div key={c.n} className="cartao cartao-fundo revela">
-                  <p className="numero-grande">{c.n}</p>
-                  <p className="cartao-titulo">{c.t}</p>
-                  <p className="texto-2">{c.d}</p>
-                </div>
-              ))}
+            {/* Um bloco só, lido como o dia passando: manhã → tarde → noite */}
+            <div className="dia-bloco revela">
+              <ReguaDia marcas={PROBLEMAS.map((p) => ({ pos: p.pos, rotulo: p.hora, ponto: true }))} />
+              <ul className="dia-linhas">
+                {PROBLEMAS.map((p) => (
+                  <li key={p.hora} className="dia-linha">
+                    <p className="dia-valor">{p.valor}</p>
+                    <div className="dia-texto">
+                      <p className="dia-titulo">{p.erro} = <em>{p.efeito}</em></p>
+                      <p className="texto-2">{p.texto}</p>
+                    </div>
+                    <span className="frasco-riscado" title={`${p.erro}: evite`}>
+                      <Frasco familia={p.familia} intensidade={p.intensidade} tamanho={30} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
@@ -105,23 +120,39 @@ export default function Inicio() {
           <div className="cabeca-secao revela">
             <h2 className="titulo-secao">Monte uma vez. <span className="serif">Use todo dia.</span></h2>
           </div>
-          <div className="grade-3">
-            <div className="cartao cartao-borda revela">
-              <p className="passo-numero serif">1</p>
-              <h3>Adicione o que você tem</h3>
-              <p className="texto-2">Digite o nome do perfume e escolha na lista. Não achou o seu? Mande nome e marca que a gente cadastra.</p>
-            </div>
-            <div className="cartao cartao-borda revela">
-              <p className="passo-numero serif">2</p>
-              <h3>A odri olha lá fora</h3>
-              <p className="texto-2">A temperatura da sua cidade agora e a hora do dia. Use a localização do celular ou escolha a cidade.</p>
-            </div>
-            <div className="cartao cartao-escuro revela">
-              <p className="passo-numero serif">3</p>
-              <h3>Você recebe o perfume do dia</h3>
-              <p className="texto-invertido-2">Com o motivo da escolha e uma segunda opção, caso queira variar.</p>
-            </div>
-          </div>
+          <ol className="passos revela">
+            <li className="passo">
+              <span className="passo-bolinha">1</span>
+              <div className="passo-texto">
+                <h3>Adicione o que você tem</h3>
+                <p className="texto-2">Digite o nome e escolha na lista. Não achou? Mande nome e marca que a gente cadastra.</p>
+              </div>
+            </li>
+            <li className="passo">
+              <span className="passo-bolinha">2</span>
+              <div className="passo-texto">
+                <h3>A odri olha lá fora</h3>
+                <p className="texto-2">Temperatura da sua cidade e hora do dia, pela localização ou pela cidade que você escolher.</p>
+              </div>
+            </li>
+            <li className="passo">
+              <span className="passo-bolinha">3</span>
+              <div className="passo-texto">
+                <h3>Você recebe o perfume do dia</h3>
+                <p className="texto-2">Com o motivo da escolha e uma segunda opção.</p>
+                <div className="passo-resultado" aria-label="Exemplo de sugestão">
+                  <p className="passo-resultado-rotulo"><span>Melhor pra hoje</span><span>24 °C · tarde</span></p>
+                  <div className="passo-resultado-perfume">
+                    <div>
+                      <p className="passo-resultado-nome">Kaiak</p>
+                      <p className="passo-resultado-marca">Natura · fresco e leve pro calor</p>
+                    </div>
+                    <Frasco familia="FRESCO" intensidade="LEVE" tamanho={40} />
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ol>
         </section>
 
         {/* Famílias: o desenho do frasco */}
@@ -135,10 +166,15 @@ export default function Inicio() {
           </div>
           <ul className="familias revela">
             {FAMILIAS.map((f) => (
-              <li key={f.chave} className={`familia fundo-${f.chave.toLowerCase()}`}>
-                <Frasco familia={f.chave} intensidade={f.intensidade} tamanho={56} />
-                <strong>{f.nome}</strong>
-                <span>{f.exemplo}</span>
+              <li key={f.chave} className="familia">
+                <span className={`familia-frasco fundo-${f.chave.toLowerCase()}`}>
+                  <Frasco familia={f.chave} intensidade={f.intensidade} tamanho={30} />
+                </span>
+                <span className="familia-texto">
+                  <strong>{f.nome}</strong>
+                  <span>{f.exemplo}</span>
+                </span>
+                <span className="familia-nivel">{NIVEL[f.intensidade]}</span>
               </li>
             ))}
           </ul>

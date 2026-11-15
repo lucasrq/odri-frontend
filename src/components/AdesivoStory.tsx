@@ -9,7 +9,7 @@ type Imagens = Record<CorAdesivo, { blob: Blob; url: string }>
  * Fechado: uma linha com o botão. Aberto: as duas versões e os botões de baixar.
  * "gerar" desenha a imagem; "chave" muda quando o conteúdo muda (aí desenha de novo).
  */
-export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, chave, gerar, evento }: {
+export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, chave, gerar, evento, variante = 'bloco', resumo }: {
   titulo: string
   texto: string
   nomeArquivo: string
@@ -17,6 +17,10 @@ export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, ch
   chave: string
   gerar: (cor: CorAdesivo) => Promise<Blob>
   evento: TipoEvento // conta nos números do Admin
+  /** "linha": fica dentro de um .grupo (tela Hoje); "bloco": caixa própria */
+  variante?: 'bloco' | 'linha'
+  /** texto curto da linha fechada (variante "linha") */
+  resumo?: string
 }) {
   const [aberto, setAberto] = useState(false)
   const [imagens, setImagens] = useState<Imagens | null>(null)
@@ -47,6 +51,27 @@ export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, ch
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, chave])
 
+  const linha = variante === 'linha'
+
+  if (!aberto && linha) {
+    return (
+      <div className="grupo-linha">
+        <span className="grupo-icone" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="5" y="2.5" width="14" height="19" rx="3" /><path d="M9 8h6M9 12h6" />
+          </svg>
+        </span>
+        <span className="grupo-texto">
+          <strong>{titulo}</strong>
+          <small>{resumo ?? texto}</small>
+        </span>
+        <button type="button" className="botao botao-escuro botao-mini" onClick={() => setAberto(true)}>
+          Criar
+        </button>
+      </div>
+    )
+  }
+
   if (!aberto) {
     return (
       <section className="painel-bloco adesivo">
@@ -64,7 +89,7 @@ export default function AdesivoStory({ titulo, texto, nomeArquivo, descricao, ch
   }
 
   return (
-    <section className="painel-bloco adesivo" aria-label={titulo}>
+    <section className={linha ? 'grupo-painel adesivo' : 'painel-bloco adesivo'} aria-label={titulo}>
       <div className="adesivo-linha">
         <strong>{titulo}</strong>
         <button type="button" className="adesivo-fechar" onClick={() => setAberto(false)}>Fechar</button>
