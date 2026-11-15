@@ -1013,27 +1013,56 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 }
 .prateleira-livre button:hover { color: var(--texto); border-color: var(--texto); background: var(--superficie); }
 
-/* Loja: vitrine */
+/* Loja: "Combina com hoje" (bloco escuro) + lista no estilo dos grupos */
 .loja { width: 100%; align-items: stretch; max-width: none; }
-.vitrine { list-style: none; display: grid; gap: 12px; }
-.vitrine-item {
-  display: grid; grid-template-columns: 112px 1fr; gap: 16px; padding: 10px;
-  border-radius: 22px; background: var(--superficie); border: 1px solid var(--borda);
-  animation: prateleira-entra 0.5s var(--suave) both;
-}
-.vitrine-item:nth-child(2) { animation-delay: 60ms; }
-.vitrine-item:nth-child(3) { animation-delay: 120ms; }
-.vitrine-item:hover .frasco { transform: translateY(-4px) rotate(-2deg); }
 .vitrine-frasco { min-height: 150px; padding-bottom: 12px; }
-.vitrine-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 6px 6px 0; min-width: 0; }
-.vitrine-faixa { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--apagado); margin-bottom: 6px; }
-.vitrine-faixa strong { color: var(--texto); }
-.vitrine-cifras { display: inline-flex; gap: 3px; margin-right: 2px; }
-.vitrine-cifras i { width: 7px; height: 7px; border-radius: 999px; background: var(--borda-forte); }
-.vitrine-cifras i.cheia { background: var(--destaque); }
-.vitrine-nome { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
-.vitrine-info .apagado { font-size: 15px; }
-.vitrine-detalhe { font-size: 14px; color: var(--apagado); margin: 4px 0 12px; }
+
+.combina-hoje {
+  background: var(--tinta); color: var(--tinta-texto); border-radius: 26px; padding: 18px 16px 16px;
+  display: flex; flex-direction: column; gap: 4px; animation: prateleira-entra 0.5s var(--suave) both;
+}
+.combina-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 0 4px; }
+.combina-topo h3 { font-family: var(--fonte-destaque); font-size: 19px; font-weight: 800; letter-spacing: -0.02em; }
+.combina-topo span { font-size: 13px; font-weight: 700; color: var(--tinta-apagado); }
+.combina-sub { font-size: 14px; color: var(--tinta-apagado); padding: 0 4px; margin-bottom: 10px; }
+.combina-trilho { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.combina-card {
+  height: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
+  padding: 12px 6px 10px; border-radius: 18px; color: inherit; text-decoration: none;
+  background: color-mix(in srgb, var(--tinte) 26%, transparent);
+  transition: transform 0.25s var(--suave), background 0.25s;
+}
+.combina-card .frasco { height: 62px; width: auto; margin-bottom: 6px; transition: transform 0.3s var(--suave); }
+.combina-card:hover { background: color-mix(in srgb, var(--tinte) 38%, transparent); }
+.combina-card:hover .frasco { transform: translateY(-3px) rotate(-2deg); }
+.combina-card:active { transform: scale(0.97); }
+.combina-card strong { font-size: 14px; line-height: 1.2; overflow-wrap: anywhere; }
+.combina-card small { font-size: 12px; color: var(--tinta-apagado); }
+.combina-preco { margin-top: auto; padding-top: 8px; font-size: 12px; font-weight: 800; }
+
+.loja-todos { display: flex; flex-direction: column; }
+.loja-lista { list-style: none; }
+.loja-lista > li:first-child .grupo-linha { border-top: 0; }
+.loja-item {
+  grid-template-columns: 46px minmax(0, 1fr) auto 16px; color: var(--texto); text-decoration: none;
+  transition: background 0.2s;
+}
+.loja-item > svg { color: var(--apagado); transition: transform 0.25s var(--suave), color 0.2s; }
+.loja-item:hover > svg { color: var(--texto); transform: translateX(3px); }
+.loja-item-frasco {
+  width: 46px; height: 52px; border-radius: 12px; display: grid; place-items: end center; padding-bottom: 5px;
+  background: color-mix(in srgb, var(--tinte) 18%, var(--tela));
+}
+.loja-item-frasco .frasco { height: 38px; width: auto; }
+.loja-item .grupo-texto strong { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loja-item .grupo-texto small { font-size: 13px; color: var(--apagado); }
+.loja-familia { display: inline-flex; align-items: center; gap: 5px; }
+.loja-familia::before { content: ""; width: 7px; height: 7px; border-radius: 99px; background: var(--tinte); }
+.loja-item-fim { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; text-align: right; }
+.loja-preco { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.loja-selo { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--creme); color: var(--creme-texto); white-space: nowrap; }
+.loja-selo-tenho { background: var(--tela); color: var(--apagado); }
+
 .vitrine-ver { margin-top: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .vitrine-ver svg { transition: transform 0.3s var(--suave); }
 .vitrine-ver:hover svg { transform: translateX(3px); }
@@ -1050,25 +1079,6 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 }
 .loja-ordem:hover { border-color: var(--texto); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-/* Catálogo: grade de cartões em pé (2 no celular, 4 no PC) */
-.catalogo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.catalogo .vitrine-item { grid-template-columns: 1fr; gap: 10px; padding: 8px 8px 12px; border-radius: 20px; }
-.catalogo .vitrine-frasco { position: relative; min-height: 150px; padding-bottom: 12px; }
-.catalogo .vitrine-frasco .frasco { height: 96px; }
-.catalogo .vitrine-info { padding: 0 6px; }
-.catalogo .vitrine-nome { font-size: 17px; }
-.catalogo .vitrine-info .apagado { font-size: 14px; }
-.catalogo .vitrine-faixa { flex-wrap: wrap; font-size: 13px; margin: 6px 0 2px; }
-.catalogo .vitrine-ver { width: 100%; justify-content: center; padding: 0 12px; font-size: 14px; }
-.catalogo .vitrine-info { flex: 1; }
-.catalogo .vitrine-genero { margin-bottom: 12px; }
-.catalogo .vitrine-item { grid-template-rows: auto 1fr; }
-.vitrine-genero { font-size: 13px; color: var(--apagado); }
-.vitrine-tenho {
-  position: absolute; top: 8px; left: 8px; padding: 3px 9px; border-radius: 999px;
-  font-size: 12px; font-weight: 800; background: var(--creme); color: var(--creme-texto);
-}
 
 /* Dica da Loja (Hoje e Coleção) */
 .dica-loja {
@@ -1091,21 +1101,20 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
   .colecao { max-width: none; }
   .prateleira { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
   .colecao-busca { max-width: 640px; }
-  .vitrine { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-  .catalogo { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .catalogo .vitrine-frasco { min-height: 190px; }
-  .catalogo .vitrine-frasco .frasco { height: 140px; }
   .colecao > .dica-loja { max-width: 640px; }
-  .vitrine-item { grid-template-columns: 1fr; gap: 14px; }
-  .vitrine-frasco { min-height: 220px; padding-bottom: 22px; }
-  .vitrine-frasco .frasco { height: 168px; }
   .prateleira-frasco { height: 150px; }
   .prateleira-frasco .frasco { height: 116px; }
-  .vitrine-info { padding: 4px 10px 10px; }
+  .combina-hoje { padding: 22px 22px 20px; max-width: 760px; }
+  .loja-controles { max-width: 760px; }
+  .combina-trilho { gap: 12px; }
+  .combina-card { padding: 18px 10px 14px; }
+  .combina-card .frasco { height: 96px; }
+  .combina-card strong { font-size: 16px; }
+  .loja-todos { max-width: 760px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .prateleira-item, .vitrine-item, .prateleira-confirma, .dica-loja { animation: none; }
+  .prateleira-item, .combina-hoje, .prateleira-confirma, .dica-loja { animation: none; }
   .frasco, .vitrine-ver svg { transition: none; }
 }
 
