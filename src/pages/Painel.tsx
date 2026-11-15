@@ -12,8 +12,7 @@ import {
   NOME_PERIODO, NOME_SELO, pegarLocalizacao, SAUDACAO, Sugestao,
 } from '../lib/painel'
 import {
-  buscarCatalogo, buscarLoja, Genero, marcarDicaMostrada, NOME_FAIXA, NOME_GENERO, NOME_LOJA, Oferta, OrdemPreco,
-  ORDEM_FAIXA, podeMostrarDica,
+  buscarCatalogo, buscarLoja, Genero, marcarDicaMostrada, NOME_FAIXA, NOME_LOJA, Oferta, OrdemPreco, podeMostrarDica,
 } from '../lib/loja'
 import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
@@ -105,7 +104,7 @@ export default function Painel({ tela }: { tela: Tela }) {
             recarregar={() => cliente && carregar(cliente)}
           />
         )}
-        {tela === 'loja' && <Loja preferencia={cliente?.preferencia ?? null} />}
+        {tela === 'loja' && <Loja preferencia={cliente?.preferencia ?? null} sugestao={sugestao} />}
         {tela === 'colecao' && (
           <Colecao
             cliente={cliente}
@@ -757,7 +756,7 @@ const GENEROS: [Genero | '', string][] = [['', 'Todos'], ['MASCULINO', 'Masculin
 /** A Loja abre filtrada pela preferência da pessoa ("os dois" ou sem resposta = Todos). */
 const generoDaPreferencia = (p: Preferencia | null): Genero | '' => (p === 'MASCULINO' || p === 'FEMININO' ? p : '')
 
-function Loja({ preferencia }: { preferencia: Preferencia | null }) {
+function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; sugestao: Sugestao | null }) {
   const [busca, setBusca] = useState('')
   const [genero, setGenero] = useState<Genero | ''>(generoDaPreferencia(preferencia))
   const mexeuNoFiltro = useRef(false)
@@ -768,6 +767,8 @@ function Loja({ preferencia }: { preferencia: Preferencia | null }) {
   const [ordem, setOrdem] = useState<OrdemPreco>('menor')
   const [itens, setItens] = useState<Oferta[] | null>(null)
   const [erro, setErro] = useState(false)
+  const [combinam, setCombinam] = useState<Oferta[]>([])
+  const idsCombinam = new Set(combinam.map((o) => o.id))
 
   const carregar = useCallback(async () => {
     setErro(false)
@@ -787,6 +788,8 @@ function Loja({ preferencia }: { preferencia: Preferencia | null }) {
   return (
     <section className="painel-pagina loja" aria-labelledby="titulo-loja">
       <h2 id="titulo-loja" className="painel-titulo-pagina">Loja</h2>
+
+      {sugestao && !busca && <CombinaHoje sugestao={sugestao} aoCarregar={setCombinam} />}
 
       <div className="loja-controles">
         <label className="campo loja-busca">
@@ -845,9 +848,12 @@ function Loja({ preferencia }: { preferencia: Preferencia | null }) {
       )}
 
       {itens && itens.length > 0 && (
-        <ul className="vitrine catalogo">
-          {itens.map((o) => <CartaoOferta key={o.id} oferta={o} />)}
-        </ul>
+        <div className="loja-todos">
+          <p className="grupo-titulo">{busca ? `${itens.length} encontrados` : 'Todos os perfumes'}</p>
+          <ul className="grupo loja-lista">
+            {itens.map((o) => <LinhaOferta key={o.id} oferta={o} combina={idsCombinam.has(o.id)} />)}
+          </ul>
+        </div>
       )}
 
       <p className="painel-dica">
@@ -857,32 +863,90 @@ function Loja({ preferencia }: { preferencia: Preferencia | null }) {
   )
 }
 
-function CartaoOferta({ oferta: o }: { oferta: Oferta }) {
-  const cifras = ORDEM_FAIXA[o.faixa]
+/** Por que a odri sugere esse perfume agora (uma frase curta, pelo clima). */
+const MOTIVO_TEMPO: Record<string, string> = {
+  CALOR: 'aguenta o calor', FRIO: 'esquenta o frio', AMENO: 'vai bem hoje', DESCONHECIDO: 'vai bem hoje',
+}
+
+/**
+ * Topo da Loja: até 3 perfumes que a pessoa não tem e que combinam com o clima de agora
+ * (GET /loja, barato → médio → caro). Some se não houver nada.
+ */
+function CombinaHoje({ sugestao, aoCarregar }: { sugestao: Sugestao; aoCarregar: (o: Oferta[]) => void }) {
+  const [ofertas, setOfertas] = useState<Oferta[]>([])
+  const { tempo, temperatura, periodo, local } = sugestao
+
+  useEffect(() => {
+    let ativo = true
+    buscarLoja(tempo === 'DESCONHECIDO' ? undefined : tempo)
+      .then((r) => { if (ativo) { setOfertas(r.ofertas); aoCarregar(r.ofertas) } })
+      .catch(() => {})
+    return () => { ativo = false }
+  }, [tempo, aoCarregar])
+
+  if (ofertas.length === 0) return null
+  const agora = [
+    temperatura !== null && `${Math.round(temperatura)} °C`,
+    NOME_PERIODO[periodo].toLowerCase(),
+    local,
+  ].filter(Boolean).join(' · ')
+
   return (
-    <li className="vitrine-item">
-      <div className={`vitrine-frasco fundo-${o.familia.toLowerCase()}`}>
-        <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={70} />
-        {o.naColecao && <span className="vitrine-tenho">Na sua coleção</span>}
+    <section className="combina-hoje" aria-labelledby="titulo-combina">
+      <div className="combina-topo">
+        <h3 id="titulo-combina">Combina com hoje</h3>
+        <span>{agora}</span>
       </div>
-      <div className="vitrine-info">
-        <h3 className="vitrine-nome">{o.nome}</h3>
-        <span className="apagado">{o.marca}</span>
-        <p className="vitrine-faixa">
-          <span className="vitrine-cifras" aria-hidden="true">
-            {[1, 2, 3].map((n) => <i key={n} className={n <= cifras ? 'cheia' : ''} />)}
-          </span>
-          {NOME_FAIXA[o.faixa].preco}
-        </p>
-        {o.genero && <span className="vitrine-genero">{NOME_GENERO[o.genero]}</span>}
-        <a
-          className={`botao botao-mini vitrine-ver ${o.naColecao ? 'botao-contorno' : 'botao-escuro'}`}
-          href={o.link} target="_blank" rel="noopener noreferrer sponsored"
-          onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe: 'loja' })}
-        >
-          {o.loja ? LOJA_CURTA[o.loja] : 'Ver na loja'} <Seta tamanho={16} />
-        </a>
-      </div>
+      <p className="combina-sub">Você ainda não tem. A odri escolheu pelo clima.</p>
+      <ul className="combina-trilho">
+        {ofertas.map((o) => (
+          <li key={o.id}>
+            <a
+              className={`combina-card fundo-${o.familia.toLowerCase()}`}
+              href={o.link} target="_blank" rel="noopener noreferrer sponsored"
+              onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe: 'combina-hoje' })}
+              aria-label={`${o.nome}, ${o.marca}, ${NOME_FAIXA[o.faixa].preco}. Ver no Mercado Livre`}
+            >
+              <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={44} />
+              <strong>{o.nome}</strong>
+              <small>{MOTIVO_TEMPO[tempo]}</small>
+              <span className="combina-preco">{NOME_FAIXA[o.faixa].preco}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** Uma linha da lista da Loja: a linha inteira abre o Mercado Livre. */
+function LinhaOferta({ oferta: o, combina }: { oferta: Oferta; combina: boolean }) {
+  const loja = o.loja ? LOJA_CURTA[o.loja] : 'loja'
+  return (
+    <li>
+      <a
+        className="grupo-linha loja-item" href={o.link} target="_blank" rel="noopener noreferrer sponsored"
+        onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe: 'loja' })}
+        aria-label={`${o.nome}, ${o.marca}, ${NOME_FAIXA[o.faixa].preco}. Ver no ${loja}`}
+      >
+        <span className={`loja-item-frasco fundo-${o.familia.toLowerCase()}`}>
+          <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={30} />
+        </span>
+        <span className="grupo-texto">
+          <strong>{o.nome}</strong>
+          <small>
+            <span className={`loja-familia fundo-${o.familia.toLowerCase()}`}>{NOME_FAMILIA[o.familia] ?? o.familia}</span>
+            {' · '}{o.marca}{o.genero === 'UNISSEX' ? ' · Unissex' : ''}
+          </small>
+        </span>
+        <span className="loja-item-fim">
+          <span className="loja-preco">{NOME_FAIXA[o.faixa].preco}</span>
+          {o.naColecao
+            ? <span className="loja-selo loja-selo-tenho">Você tem</span>
+            : combina && <span className="loja-selo">Combina hoje</span>}
+        </span>
+        <Seta tamanho={16} />
+      </a>
     </li>
   )
 }

@@ -220,7 +220,7 @@ export async function gerarSelo(d: DadosDia, cor: CorSelo): Promise<Blob> {
   // Régua
   desenharRegua(ctx, PAD, yRegua, W - PAD * 2, d.periodo, tema.fundo, tema.texto)
 
-  // Rodapé: 24 °C São Paulo ........ odri.app
+  // Rodapé: 24 °C São Paulo ........ @odri.app (odri.app é de outra pessoa)
   const { t, local } = linhaClima(d)
   fonteDe(ctx, 'Figtree', 800, 34)
   ctx.fillStyle = tema.texto
@@ -230,7 +230,7 @@ export async function gerarSelo(d: DadosDia, cor: CorSelo): Promise<Blob> {
   ctx.fillStyle = tema.apagado
   ctx.fillText(quebrar(ctx, local, W - PAD * 2 - lt - 200, 1)[0] ?? '', PAD + lt, yPe)
   ctx.textAlign = 'right'
-  ctx.fillText('odri.app', W - PAD, yPe)
+  ctx.fillText('@odri.app', W - PAD, yPe)
   ctx.textAlign = 'left'
 
   return emBlob(canvas)
@@ -317,17 +317,17 @@ export async function gerarStoryPronto(d: DadosDia): Promise<Blob> {
   fonteDe(ctx, 'Figtree', 500, 40)
   motivo.forEach((l, i) => ctx.fillText(l, cx + 60, yMotivo + i * 54))
 
-  // Rodapé: pergunta + odri.app
+  // Rodapé: pergunta + @odri.app
   const yPe = Math.max(900 + ch + 150, 1560)
   ctx.fillStyle = f.texto
   fonteDe(ctx, 'Figtree', 800, 50)
   ctx.fillText('Qual é o seu de hoje?', M, yPe)
   fonteDe(ctx, 'Figtree', 800, 40)
-  const largLink = ctx.measureText('odri.app').width + 64
+  const largLink = ctx.measureText('@odri.app').width + 64
   ctx.fillStyle = f.texto
   ctx.beginPath(); ctx.roundRect(W - M - largLink, yPe - 54, largLink, 76, 38); ctx.fill()
   ctx.fillStyle = d.periodo === 'NOITE' ? '#17191C' : '#F6EFE4'
-  ctx.fillText('odri.app', W - M - largLink + 32, yPe - 2)
+  ctx.fillText('@odri.app', W - M - largLink + 32, yPe - 2)
 
   return emBlob(canvas)
 }
