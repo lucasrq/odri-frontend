@@ -9,6 +9,7 @@ import {
   type PerfumeExemplo,
 } from '../lib/sugestao'
 import Frasco from './Frasco'
+import ReguaDia, { POS_PERIODO } from './ReguaDia'
 import { Fechar, Local, Trocar } from './Icones'
 
 export interface CidadeExemplo {
@@ -76,52 +77,59 @@ export default function CelularDemo({ cidade, periodo, onTrocarCidade, onPeriodo
                   </button>
                 </div>
 
-                <div role="group" aria-label="Hora do dia" className="cel-segmentos">
-                  {PERIODOS.map((nome, i) => (
-                    <button
-                      key={nome}
-                      type="button"
-                      className={`toque ${i === periodo ? 'ativo' : ''}`}
-                      aria-pressed={i === periodo}
-                      onClick={() => mudarPeriodo(i as Periodo)}
-                    >
-                      {nome}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="cel-dados">
-                  <div className="cel-caixa">
-                    <p className="cel-pequeno">Agora</p>
-                    <p className="cel-numero" key={cidade.graus}>{cidade.graus} °C</p>
-                  </div>
-                  <div className="cel-caixa">
-                    <p className="cel-pequeno">Tempo</p>
-                    <p className="cel-numero">{TEMPO_NOME[tempoDa(cidade.graus)]}</p>
-                  </div>
+                {/* Régua do dia: toque em Manhã, Tarde ou Noite */}
+                <div className="cel-dia">
+                  <p className="cel-dia-clima">
+                    <strong key={cidade.graus}>{cidade.graus} °C</strong>
+                    <span className="cel-pequeno">{TEMPO_NOME[tempoDa(cidade.graus)]} · agora</span>
+                  </p>
+                  <ReguaDia
+                    rotuloGrupo="Hora do dia"
+                    aoEscolher={(i) => mudarPeriodo(i as Periodo)}
+                    marcas={PERIODOS.map((nome, i) => ({
+                      pos: POS_PERIODO[i], rotulo: nome, ponto: i === periodo, ativo: i === periodo,
+                    }))}
+                  />
                 </div>
 
                 {/* key: o cartão "respira" a cada sugestão nova */}
                 <div className="cel-sugestao" key={`${escolhido.nome}-${periodo}-${cidade.nome}`}>
+                  <p className="cel-rotulo"><span className="bolinha" />Melhor pra hoje</p>
                   <div className="cel-sugestao-topo">
                     <div>
-                      <p className="cel-rotulo"><span className="bolinha" />Perfume de hoje</p>
                       <p className="cel-perfume">{escolhido.nome}</p>
-                      <p className="cel-marca">{escolhido.marca}</p>
+                      <p className="cel-marca">
+                        {escolhido.marca} · {escolhido.familia} · {INTENSIDADE_CURTA[escolhido.intensidade]}
+                      </p>
                     </div>
                     <Frasco familia={escolhido.chave} intensidade={escolhido.intensidade} tamanho={40} />
                   </div>
                   <p className="cel-motivo">{motivo(escolhido, cidade.graus, periodo)}</p>
-                  <div className="cel-tags">
-                    <span>{escolhido.familia}</span>
-                    <span>{INTENSIDADE_CURTA[escolhido.intensidade]}</span>
-                  </div>
                 </div>
 
-                <button type="button" className="cel-outra toque" onClick={() => setTrocado(!trocado)}>
-                  <span><span className="cel-apagado">Outra opção: </span><strong>{segundo.nome}</strong></span>
-                  <Trocar />
-                </button>
+                <div className="grupo cel-grupo">
+                  <button type="button" className="grupo-linha grupo-botao toque" onClick={() => setTrocado(!trocado)}>
+                    <span className="grupo-icone grupo-icone-frasco" aria-hidden="true">
+                      <Frasco familia={segundo.chave} intensidade={segundo.intensidade} tamanho={18} />
+                    </span>
+                    <span className="grupo-texto">
+                      <strong>{segundo.nome}</strong>
+                      <small>Outra opção · toque pra trocar</small>
+                    </span>
+                    <Trocar />
+                  </button>
+                  <div className="grupo-linha">
+                    <span className="grupo-icone" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="5" y="2.5" width="14" height="19" rx="3" /><path d="M9 8h6M9 12h6" />
+                      </svg>
+                    </span>
+                    <span className="grupo-texto">
+                      <strong>Poste no seu story</strong>
+                      <small>"Hoje eu vou de {escolhido.nome}."</small>
+                    </span>
+                  </div>
+                </div>
               </>
             )}
 

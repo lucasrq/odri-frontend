@@ -20,6 +20,7 @@ import BuscaPerfume from '../components/BuscaPerfume'
 import Frasco from '../components/Frasco'
 import AdesivoStory from '../components/AdesivoStory'
 import AdminPerfumes from '../components/AdminPerfumes'
+import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
 import { gerarAdesivo, gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
@@ -90,7 +91,9 @@ export default function Painel({ tela }: { tela: Tela }) {
             {SAUDACAO[periodo]}
             {cliente && <>, <span className="serif destaque">{primeiroNome(cliente.nome)}.</span></>}
           </h1>
-          <ChipClima sugestao={sugestao} estado={estado} />
+          {tela === 'hoje'
+            ? <DiaAgora sugestao={sugestao} estado={estado} periodo={periodo} />
+            : <ChipClima sugestao={sugestao} estado={estado} />}
         </div>
 
         {tela === 'hoje' && (
@@ -232,7 +235,39 @@ function ChipClima({ sugestao, estado }: { sugestao: Sugestao | null; estado: Es
   )
 }
 
-/* ---------- Tela Hoje (abas Hoje e Análise) ---------- */
+/* ---------- Régua do dia com o clima (só na tela Hoje) ---------- */
+
+const PERIODOS_REGUA = ['MANHA', 'TARDE', 'NOITE'] as const
+
+function DiaAgora({ sugestao, estado, periodo }: {
+  sugestao: Sugestao | null
+  estado: Estado
+  periodo: Sugestao['periodo']
+}) {
+  const t = sugestao?.temperatura ?? null
+  return (
+    <section className="dia-agora" aria-label="Clima e hora do dia">
+      <p className="dia-agora-clima" aria-live="polite">
+        <span className="chip-bolinha" style={{ ['--cor' as string]: corDaTemperatura(t) }} aria-hidden="true" />
+        {t !== null ? (
+          <>
+            <strong>{Math.round(t)} °C</strong>
+            <span className="apagado">{sugestao?.local ? `${sugestao.local} · agora` : 'agora'}</span>
+          </>
+        ) : (
+          <span className="apagado">{estado === 'carregando' ? 'Vendo o clima…' : 'Clima indisponível'}</span>
+        )}
+      </p>
+      <ReguaDia
+        marcas={PERIODOS_REGUA.map((p, i) => ({
+          pos: POS_PERIODO[i], rotulo: NOME_PERIODO[p], ponto: p === periodo, ativo: p === periodo,
+        }))}
+      />
+    </section>
+  )
+}
+
+/* ---------- Tela Hoje ---------- */
 
 function Hoje({ estado, sugestao, cliente, recarregar }: {
   estado: Estado
@@ -240,7 +275,15 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
   cliente: Cliente | null
   recarregar: () => void
 }) {
-  const [aba, setAba] = useState<'hoje' | 'analise'>('hoje')
+  // No celular a análise fica fechada e abre pela linha "Análise da coleção"
+  const [verAnalise, setVerAnalise] = useState(false)
+  const [adicionando, setAdicionando] = useState(false)
+  const analiseRef = useRef<HTMLDivElement>(null)
+  const abrirAnalise = () => {
+    const abrir = !verAnalise
+    setVerAnalise(abrir)
+    if (abrir) requestAnimationFrame(() => analiseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
   // Dica da Loja num dia normal: decide uma vez ao abrir (no máximo 1 a cada 3 dias)
   const [dicaHoje, setDicaHoje] = useState(false)
   const idCliente = cliente?.id
@@ -266,9 +309,6 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
   }
 
   const idsColecao = sugestao.analise.map((p) => p.id)
-  const adicionar = (
-    <AdicionarPerfume cliente={cliente} total={idsColecao.length} ids={idsColecao} aoAdicionar={recarregar} />
-  )
 
   // Coleção vazia
   if (sugestao.analise.length === 0) {
@@ -284,31 +324,78 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
     )
   }
 
+  const combinam = sugestao.analise.filter((p) => p.selo === 'COMBINA').length
+  const emAnalise = sugestao.analise.filter((p) => p.selo === 'EM_ANALISE').length
+  const outra = !sugestao.nadaCombina ? <OutraOpcao sugestao={sugestao} /> : null
+
   return (
-    <>
-      <div className="painel-abas" role="tablist" aria-label="Painel">
-        <button type="button" role="tab" aria-selected={aba === 'hoje'} onClick={() => setAba('hoje')}>Hoje</button>
-        <button type="button" role="tab" aria-selected={aba === 'analise'} onClick={() => setAba('analise')}>Análise</button>
+    <div className="painel-grade" data-analise={verAnalise ? 'aberta' : 'fechada'}>
+      <div className="painel-col painel-col-hoje">
+        <MelhorDoDia sugestao={sugestao} />
+        {sugestao.nadaCombina && <DicaLoja tempo={sugestao.tempo} titulo="Falta na sua coleção" />}
+
+        {(outra || sugestao.perfume) && (
+          <section aria-labelledby="titulo-pra-hoje">
+            <h2 id="titulo-pra-hoje" className="grupo-titulo">Pra hoje também</h2>
+            <div className="grupo">
+              {outra}
+              {sugestao.perfume && <AdesivoDoDia perfume={sugestao.perfume.nome} sugestao={sugestao} />}
+            </div>
+          </section>
+        )}
+
+        {!sugestao.nadaCombina && dicaHoje && (
+          <DicaLoja tempo={sugestao.tempo} titulo="Uma dica pra sua coleção" aoMostrar={marcarDica} />
+        )}
+
+        <section aria-labelledby="titulo-sua-colecao">
+          <h2 id="titulo-sua-colecao" className="grupo-titulo">Sua coleção</h2>
+          <div className="grupo">
+            <button
+              type="button" className="grupo-linha grupo-botao" aria-expanded={adicionando}
+              onClick={() => setAdicionando(!adicionando)}
+            >
+              <span className="grupo-icone" aria-hidden="true"><Mais /></span>
+              <span className="grupo-texto">
+                <strong>Adicionar perfume</strong>
+                <small>
+                  {cliente && !cliente.plus
+                    ? `${idsColecao.length} de ${LIMITE_GRATIS} no plano grátis`
+                    : `${idsColecao.length} na coleção`}
+                </small>
+              </span>
+              <span className={`grupo-seta ${adicionando ? 'aberta' : ''}`} aria-hidden="true">›</span>
+            </button>
+            {adicionando && (
+              <div className="grupo-painel">
+                <BuscaPerfume
+                  naColecao={idsColecao} placeholder="Busque: Acqua di Giò, Kaiak…"
+                  aoAdicionar={recarregar}
+                />
+              </div>
+            )}
+            <button
+              type="button" className="grupo-linha grupo-botao linha-analise" aria-expanded={verAnalise}
+              onClick={abrirAnalise}
+            >
+              <span className="grupo-icone" aria-hidden="true"><IconeBarras /></span>
+              <span className="grupo-texto">
+                <strong>Análise da coleção</strong>
+                <small>
+                  {combinam} {combinam === 1 ? 'combina' : 'combinam'} hoje
+                  {emAnalise > 0 && ` · ${emAnalise} em análise`}
+                </small>
+              </span>
+              <span className={`grupo-seta ${verAnalise ? 'aberta' : ''}`} aria-hidden="true">›</span>
+            </button>
+          </div>
+        </section>
       </div>
 
-      <div className="painel-grade" data-aba={aba}>
-        <div className="painel-col painel-col-hoje">
-          <MelhorDoDia sugestao={sugestao} />
-          {sugestao.perfume && <AdesivoDoDia perfume={sugestao.perfume.nome} sugestao={sugestao} />}
-          {sugestao.nadaCombina
-            ? <DicaLoja tempo={sugestao.tempo} titulo="Falta na sua coleção" />
-            : <OutraOpcao sugestao={sugestao} />}
-          {!sugestao.nadaCombina && dicaHoje && (
-            <DicaLoja tempo={sugestao.tempo} titulo="Uma dica pra sua coleção" aoMostrar={marcarDica} />
-          )}
-          {adicionar}
-        </div>
-
-        <div className="painel-col painel-col-analise">
-          <Analise sugestao={sugestao} />
-        </div>
+      <div className="painel-col painel-col-analise" ref={analiseRef}>
+        <Analise sugestao={sugestao} />
       </div>
-    </>
+    </div>
   )
 }
 
@@ -334,19 +421,24 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
       <div className="cartao-perfume">
         <div>
           <p className="cartao-nome">{perfume.nome}</p>
-          <p className="cartao-marca">{perfume.marca}</p>
+          <p className="cartao-marca">
+            {[perfume.marca, item?.familia && NOME_FAMILIA[item.familia], item?.intensidade && NOME_INTENSIDADE[item.intensidade]]
+              .filter(Boolean).join(' · ')}
+          </p>
         </div>
         {item?.familia && (
-          <Frasco familia={item.familia} intensidade={item.intensidade} tamanho={50} />
+          <Frasco familia={item.familia} intensidade={item.intensidade} tamanho={56} />
         )}
       </div>
-      <p className="cartao-texto">
-        {nadaCombina ? `${item?.motivo ?? ''} Hoje, use pouco: 1 borrifada no pescoço.` : sugestao.motivo}
-      </p>
-      <div className="cartao-chips">
-        {item?.familia && <span>{NOME_FAMILIA[item.familia]}</span>}
-        {item?.intensidade && <span>{NOME_INTENSIDADE[item.intensidade]}</span>}
-        <span>{NOME_PERIODO[sugestao.periodo]}</span>
+      <div className="cartao-motivo">
+        {item?.nota != null && (
+          <div className="cartao-medidor" aria-hidden="true">
+            <i className={nadaCombina ? 'fraco' : ''} style={{ width: `${item.nota}%` }} />
+          </div>
+        )}
+        <p className="cartao-texto">
+          {nadaCombina ? `${item?.motivo ?? ''} Hoje, use pouco: 1 borrifada no pescoço.` : sugestao.motivo}
+        </p>
       </div>
     </section>
   )
@@ -364,6 +456,8 @@ function AdesivoDoDia({ perfume, sugestao }: { perfume: string; sugestao: Sugest
       chave={perfume + linha}
       gerar={(cor) => gerarAdesivo(perfume, linha, cor)}
       evento="ADESIVO_DIA"
+      variante="linha"
+      resumo={`"Hoje eu vou de ${perfume}."`}
     />
   )
 }
@@ -388,30 +482,24 @@ function OutraOpcao({ sugestao }: { sugestao: Sugestao }) {
   const item = sugestao.analise.find((a) => a.id === outra.id)
   if (!item || item.selo === 'EVITE') return null
   return (
-    <section className="painel-bloco">
-      <p className="painel-rotulo">{item.selo === 'COMBINA' ? 'Também combina' : 'Outra opção'}</p>
-      <div className="linha-perfume">
-        <span><strong>{outra.nome}</strong> <span className="apagado">{outra.marca}</span></span>
-        {item.nota != null && <span className="numero">{item.nota}%</span>}
-      </div>
-    </section>
+    <div className="grupo-linha">
+      <span className="grupo-icone grupo-icone-frasco" aria-hidden="true">
+        <Frasco familia={item.familia} intensidade={item.intensidade} pendente={item.pendente} tamanho={20} />
+      </span>
+      <span className="grupo-texto">
+        <strong>{outra.nome}</strong>
+        <small>{outra.marca} · {item.selo === 'COMBINA' ? 'também combina' : 'outra opção'}</small>
+      </span>
+      {item.nota != null && <span className="grupo-numero">{item.nota}%</span>}
+    </div>
   )
 }
 
-function AdicionarPerfume({ cliente, total, ids, aoAdicionar }: {
-  cliente: Cliente | null
-  total: number
-  ids: number[]
-  aoAdicionar: () => void
-}) {
+function IconeBarras() {
   return (
-    <section className="painel-bloco painel-adicionar">
-      <h2 className="painel-subtitulo">Adicionar perfume</h2>
-      <BuscaPerfume naColecao={ids} aoAdicionar={aoAdicionar} placeholder="Busque: Acqua di Giò, Kaiak…" />
-      {cliente && !cliente.plus && (
-        <p className="painel-dica">{total} de {LIMITE_GRATIS} perfumes no plano grátis</p>
-      )}
-    </section>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M5 20V11M12 20V5M19 20v-7" />
+    </svg>
   )
 }
 
@@ -894,6 +982,10 @@ function Conta({ cliente, aoMudarCliente }: {
   const [salvandoSenha, setSalvandoSenha] = useState(false)
   const [recadoSenha, setRecadoSenha] = useState<Recado>(null)
 
+  // Qual linha dos ajustes está aberta (uma por vez)
+  const [aberto, setAberto] = useState<'nome' | 'pref' | 'senha' | 'apagar' | null>(null)
+  const alternar = (qual: NonNullable<typeof aberto>) => setAberto(aberto === qual ? null : qual)
+
   // Apagar conta
   const [confirmando, setConfirmando] = useState(false)
   const [apagando, setApagando] = useState(false)
@@ -968,115 +1060,150 @@ function Conta({ cliente, aoMudarCliente }: {
     <section className="painel-pagina conta-pagina" aria-labelledby="titulo-conta">
       <h2 id="titulo-conta" className="painel-titulo-pagina">Minha conta</h2>
 
-      <div className="painel-bloco">
-        <div className="conta-linha">
-          <span>
-            <span className="painel-rotulo">Plano</span>
-            <strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong>
-          </span>
-          {!cliente?.plus && <a href="/#planos">Conhecer o Plus</a>}
-        </div>
-        <div className="conta-linha">
-          <span>
-            <span className="painel-rotulo">Cidade</span>
-            <strong>{cliente?.cidade ?? 'Automática (localização)'}</strong>
-          </span>
-          <Link to="/app/comecar">Trocar</Link>
-        </div>
-        <div className="conta-linha">
-          <span>
-            <span className="painel-rotulo">E-mail</span>
-            <strong>{email || '…'}</strong>
-          </span>
+      <div>
+        <h3 className="grupo-titulo">Seu plano</h3>
+        <div className="grupo">
+          <div className="grupo-linha conta-linha-simples">
+            <span className="grupo-texto"><small>Plano</small><strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong></span>
+            {!cliente?.plus && <a className="grupo-acao" href="/#planos">Conhecer o Plus</a>}
+          </div>
+          <div className="grupo-linha conta-linha-simples">
+            <span className="grupo-texto"><small>Cidade</small><strong>{cliente?.cidade ?? 'Automática (localização)'}</strong></span>
+            <Link className="grupo-acao" to="/app/comecar">Trocar</Link>
+          </div>
+          <div className="grupo-linha conta-linha-simples">
+            <span className="grupo-texto"><small>E-mail</small><strong>{email || '…'}</strong></span>
+          </div>
         </div>
       </div>
 
-      <form className="painel-bloco" onSubmit={salvarNome} noValidate>
-        <h3 className="painel-subtitulo">Seu nome</h3>
-        <label className="campo">
-          <span className="so-leitor">Nome</span>
-          <input
-            type="text" autoComplete="given-name" maxLength={100}
-            value={nome} onChange={(e) => setNome(e.target.value)}
+      <div>
+        <h3 className="grupo-titulo">Ajustes</h3>
+        <div className="grupo">
+          <LinhaAjuste titulo="Nome" valor={cliente?.nome ?? '…'} aberto={aberto === 'nome'} aoTocar={() => alternar('nome')} />
+          {aberto === 'nome' && (
+            <form className="grupo-painel" onSubmit={salvarNome} noValidate>
+              <label className="campo">
+                <span className="so-leitor">Nome</span>
+                <input
+                  type="text" autoComplete="given-name" maxLength={100} autoFocus
+                  value={nome} onChange={(e) => setNome(e.target.value)}
+                />
+              </label>
+              {recadoNome && <p className={recadoNome.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoNome.texto}</p>}
+              <button
+                type="submit" className="botao botao-escuro botao-campo conta-botao"
+                disabled={salvandoNome || !cliente || nome.trim() === cliente.nome}
+              >
+                {salvandoNome ? 'Salvando…' : 'Salvar nome'}
+              </button>
+            </form>
+          )}
+
+          <LinhaAjuste
+            titulo="Que perfume você usa" aberto={aberto === 'pref'} aoTocar={() => alternar('pref')}
+            valor={PREFERENCIAS.find(([v]) => v === cliente?.preferencia)?.[1] ?? 'Não respondido'}
           />
-        </label>
-        {recadoNome && <p className={recadoNome.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoNome.texto}</p>}
-        <button
-          type="submit" className="botao botao-escuro botao-campo conta-botao"
-          disabled={salvandoNome || !cliente || nome.trim() === cliente.nome}
-        >
-          {salvandoNome ? 'Salvando…' : 'Salvar nome'}
-        </button>
-      </form>
+          {aberto === 'pref' && (
+            <div className="grupo-painel">
+              {cliente && !cliente.preferencia && (
+                <p className="texto-2">Responda pra receber dicas da Loja do seu jeito.</p>
+              )}
+              <div className="colecao-filtros escolha-preferencia-botoes" role="group" aria-label="Que perfume você usa">
+                {PREFERENCIAS.map(([valor, nome]) => (
+                  <button
+                    key={valor} type="button" className="colecao-filtro" disabled={salvandoPref || !cliente}
+                    aria-pressed={cliente?.preferencia === valor} onClick={() => salvarPreferencia(valor)}
+                  >
+                    {nome}
+                  </button>
+                ))}
+              </div>
+              {recadoPref && <p className={recadoPref.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoPref.texto}</p>}
+            </div>
+          )}
 
-      <div className="painel-bloco">
-        <h3 className="painel-subtitulo">Que perfume você usa?</h3>
-        {cliente && !cliente.preferencia && (
-          <p className="texto-2">Responda pra receber dicas da Loja do seu jeito.</p>
-        )}
-        <div className="colecao-filtros escolha-preferencia-botoes" role="group" aria-label="Que perfume você usa">
-          {PREFERENCIAS.map(([valor, nome]) => (
-            <button
-              key={valor} type="button" className="colecao-filtro" disabled={salvandoPref || !cliente}
-              aria-pressed={cliente?.preferencia === valor} onClick={() => salvarPreferencia(valor)}
-            >
-              {nome}
-            </button>
-          ))}
+          <LinhaAjuste titulo="Senha" valor="Trocar" aberto={aberto === 'senha'} aoTocar={() => alternar('senha')} />
+          {aberto === 'senha' && (
+            <form className="grupo-painel" onSubmit={salvarSenha} noValidate>
+              <label className="campo">
+                <span className="so-leitor">Senha nova</span>
+                <div className="campo-senha">
+                  <input
+                    type={mostrarSenha ? 'text' : 'password'} autoComplete="new-password" autoFocus
+                    minLength={SENHA_MINIMA} placeholder={`Mínimo ${SENHA_MINIMA} caracteres`}
+                    value={senha} onChange={(e) => setSenha(e.target.value)}
+                  />
+                  <button
+                    type="button" className="campo-mostrar"
+                    onClick={() => setMostrarSenha(!mostrarSenha)} aria-pressed={mostrarSenha}
+                  >
+                    {mostrarSenha ? 'Esconder' : 'Mostrar'}
+                  </button>
+                </div>
+              </label>
+              {recadoSenha && <p className={recadoSenha.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoSenha.texto}</p>}
+              <button
+                type="submit" className="botao botao-escuro botao-campo conta-botao"
+                disabled={salvandoSenha || senha === ''}
+              >
+                {salvandoSenha ? 'Trocando…' : 'Trocar senha'}
+              </button>
+            </form>
+          )}
         </div>
-        {recadoPref && <p className={recadoPref.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoPref.texto}</p>}
       </div>
 
-      <form className="painel-bloco" onSubmit={salvarSenha} noValidate>
-        <h3 className="painel-subtitulo">Trocar senha</h3>
-        <label className="campo">
-          <span className="so-leitor">Senha nova</span>
-          <div className="campo-senha">
-            <input
-              type={mostrarSenha ? 'text' : 'password'} autoComplete="new-password"
-              minLength={SENHA_MINIMA} placeholder={`Mínimo ${SENHA_MINIMA} caracteres`}
-              value={senha} onChange={(e) => setSenha(e.target.value)}
-            />
-            <button
-              type="button" className="campo-mostrar"
-              onClick={() => setMostrarSenha(!mostrarSenha)} aria-pressed={mostrarSenha}
-            >
-              {mostrarSenha ? 'Esconder' : 'Mostrar'}
-            </button>
+      <div className="grupo">
+        <LinhaAjuste
+          titulo="Apagar conta" valor="" perigo aberto={aberto === 'apagar'}
+          aoTocar={() => { setConfirmando(false); alternar('apagar') }}
+        />
+        {aberto === 'apagar' && (
+          <div className="grupo-painel">
+            <p className="texto-2">
+              Apaga seu login, sua coleção e todos os seus dados da odri. Não tem como desfazer.
+            </p>
+            {confirmando ? (
+              <div className="colecao-confirma">
+                <span>Tem certeza?</span>
+                <button type="button" className="botao botao-contorno botao-mini" onClick={() => setConfirmando(false)}>
+                  Não
+                </button>
+                <button type="button" className="botao botao-perigo botao-mini" disabled={apagando} onClick={apagar}>
+                  {apagando ? 'Apagando…' : 'Sim, apagar tudo'}
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="colecao-tirar" onClick={() => setConfirmando(true)}>
+                Apagar minha conta
+              </button>
+            )}
+            {erroApagar && <p className="conta-erro" role="alert">{erroApagar}</p>}
           </div>
-        </label>
-        {recadoSenha && <p className={recadoSenha.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status">{recadoSenha.texto}</p>}
-        <button
-          type="submit" className="botao botao-escuro botao-campo conta-botao"
-          disabled={salvandoSenha || senha === ''}
-        >
-          {salvandoSenha ? 'Trocando…' : 'Trocar senha'}
-        </button>
-      </form>
-
-      <div className="painel-bloco conta-perigo">
-        <h3 className="painel-subtitulo">Apagar conta</h3>
-        <p className="texto-2">
-          Apaga seu login, sua coleção e todos os seus dados da odri. Não tem como desfazer.
-        </p>
-        {confirmando ? (
-          <div className="colecao-confirma">
-            <span>Tem certeza?</span>
-            <button type="button" className="botao botao-contorno botao-mini" onClick={() => setConfirmando(false)}>
-              Não
-            </button>
-            <button type="button" className="botao botao-perigo botao-mini" disabled={apagando} onClick={apagar}>
-              {apagando ? 'Apagando…' : 'Sim, apagar tudo'}
-            </button>
-          </div>
-        ) : (
-          <button type="button" className="colecao-tirar" onClick={() => setConfirmando(true)}>
-            Apagar minha conta
-          </button>
         )}
-        {erroApagar && <p className="conta-erro" role="alert">{erroApagar}</p>}
       </div>
     </section>
+  )
+}
+
+/** Uma linha dos ajustes da conta: mostra o valor e abre o campo embaixo ao tocar. */
+function LinhaAjuste({ titulo, valor, aberto, aoTocar, perigo = false }: {
+  titulo: string
+  valor: string
+  aberto: boolean
+  aoTocar: () => void
+  perigo?: boolean
+}) {
+  return (
+    <button
+      type="button" className={`grupo-linha grupo-botao conta-linha-ajuste ${perigo ? 'grupo-perigo' : ''}`}
+      aria-expanded={aberto} onClick={aoTocar}
+    >
+      <span className="grupo-texto"><strong>{titulo}</strong></span>
+      <span className="grupo-valor">{valor}</span>
+      <span className={`grupo-seta ${aberto ? 'aberta' : ''}`} aria-hidden="true">›</span>
+    </button>
   )
 }
 
