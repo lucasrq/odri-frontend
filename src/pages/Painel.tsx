@@ -751,6 +751,9 @@ function Colecao({ cliente, sugestao, aoMudar }: {
 
 const LOJA_CURTA = { AMAZON: 'Amazon', MERCADO_LIVRE: 'Mercado Livre' } as const
 
+/** Quantos perfumes a lista da Loja mostra de cada vez ("Ver mais" soma outro tanto). */
+const POR_PAGINA = 10
+
 const GENEROS: [Genero | '', string][] = [['', 'Todos'], ['MASCULINO', 'Masculino'], ['FEMININO', 'Feminino']]
 
 /** A Loja abre filtrada pela preferência da pessoa ("os dois" ou sem resposta = Todos). */
@@ -767,17 +770,19 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
   const [ordem, setOrdem] = useState<OrdemPreco>('menor')
   const [itens, setItens] = useState<Oferta[] | null>(null)
   const [erro, setErro] = useState(false)
-  const [combinam, setCombinam] = useState<Oferta[]>([])
-  const idsCombinam = new Set(combinam.map((o) => o.id))
+  const [soCombina, setSoCombina] = useState(false)
+  const [limite, setLimite] = useState(POR_PAGINA)
+  const tempo = sugestao?.tempo
+  const temClima = !!tempo && tempo !== 'DESCONHECIDO'
 
   const carregar = useCallback(async () => {
     setErro(false)
     try {
-      setItens(await buscarCatalogo({ busca, genero, ordem }))
+      setItens(await buscarCatalogo({ busca, genero, ordem, tempo }))
     } catch {
       setErro(true)
     }
-  }, [busca, genero, ordem])
+  }, [busca, genero, ordem, tempo])
 
   // Espera a pessoa parar de digitar (250 ms) antes de buscar
   useEffect(() => {
@@ -785,11 +790,17 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
     return () => clearTimeout(espera)
   }, [carregar, busca])
 
+  // Mudou o filtro: volta a mostrar só a primeira leva
+  useEffect(() => { setLimite(POR_PAGINA) }, [busca, genero, ordem, soCombina])
+
+  const lista = itens && (soCombina ? itens.filter((o) => o.combina) : itens)
+  const restam = lista ? lista.length - limite : 0
+
   return (
     <section className="painel-pagina loja" aria-labelledby="titulo-loja">
       <h2 id="titulo-loja" className="painel-titulo-pagina">Loja</h2>
 
-      {sugestao && !busca && <CombinaHoje sugestao={sugestao} aoCarregar={setCombinam} />}
+      {sugestao && !busca && <CombinaHoje sugestao={sugestao} />}
 
       <div className="loja-controles">
         <label className="campo loja-busca">
@@ -810,6 +821,15 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
               </button>
             ))}
           </div>
+          {temClima && (
+            <button
+              type="button" className="colecao-filtro loja-filtro-combina"
+              aria-pressed={soCombina} onClick={() => setSoCombina((v) => !v)}
+            >
+              <span aria-hidden="true" className="loja-filtro-check">{soCombina ? '✓' : ''}</span>
+              Combina hoje
+            </button>
+          )}
           <button
             type="button" className="loja-ordem"
             onClick={() => setOrdem((o) => (o === 'menor' ? 'maior' : 'menor'))}
@@ -847,12 +867,29 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
         </div>
       )}
 
-      {itens && itens.length > 0 && (
+      {!erro && itens && itens.length > 0 && lista?.length === 0 && (
+        <div className="cartao-suave">
+          <strong>Nenhum desses combina com hoje</strong>
+          <p>Tire o filtro "Combina hoje" pra ver todos.</p>
+          <button type="button" className="botao botao-contorno botao-mini loja-tentar" onClick={() => setSoCombina(false)}>
+            Ver todos
+          </button>
+        </div>
+      )}
+
+      {lista && lista.length > 0 && (
         <div className="loja-todos">
-          <p className="grupo-titulo">{busca ? `${itens.length} encontrados` : 'Todos os perfumes'}</p>
+          <p className="grupo-titulo">
+            {soCombina ? `${lista.length} combinam com hoje` : busca ? `${lista.length} encontrados` : `Todos os perfumes · ${lista.length}`}
+          </p>
           <ul className="grupo loja-lista">
-            {itens.map((o) => <LinhaOferta key={o.id} oferta={o} combina={idsCombinam.has(o.id)} />)}
+            {lista.slice(0, limite).map((o) => <LinhaOferta key={o.id} oferta={o} />)}
           </ul>
+          {restam > 0 && (
+            <button type="button" className="botao botao-contorno loja-ver-mais" onClick={() => setLimite((l) => l + POR_PAGINA)}>
+              Ver mais <span className="apagado">· faltam {restam}</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -872,17 +909,17 @@ const MOTIVO_TEMPO: Record<string, string> = {
  * Topo da Loja: até 3 perfumes que a pessoa não tem e que combinam com o clima de agora
  * (GET /loja, barato → médio → caro). Some se não houver nada.
  */
-function CombinaHoje({ sugestao, aoCarregar }: { sugestao: Sugestao; aoCarregar: (o: Oferta[]) => void }) {
+function CombinaHoje({ sugestao }: { sugestao: Sugestao }) {
   const [ofertas, setOfertas] = useState<Oferta[]>([])
   const { tempo, temperatura, periodo, local } = sugestao
 
   useEffect(() => {
     let ativo = true
     buscarLoja(tempo === 'DESCONHECIDO' ? undefined : tempo)
-      .then((r) => { if (ativo) { setOfertas(r.ofertas); aoCarregar(r.ofertas) } })
+      .then((r) => { if (ativo) setOfertas(r.ofertas) })
       .catch(() => {})
     return () => { ativo = false }
-  }, [tempo, aoCarregar])
+  }, [tempo])
 
   if (ofertas.length === 0) return null
   const agora = [
@@ -920,7 +957,7 @@ function CombinaHoje({ sugestao, aoCarregar }: { sugestao: Sugestao; aoCarregar:
 }
 
 /** Uma linha da lista da Loja: a linha inteira abre o Mercado Livre. */
-function LinhaOferta({ oferta: o, combina }: { oferta: Oferta; combina: boolean }) {
+function LinhaOferta({ oferta: o }: { oferta: Oferta }) {
   const loja = o.loja ? LOJA_CURTA[o.loja] : 'loja'
   return (
     <li>
@@ -943,7 +980,7 @@ function LinhaOferta({ oferta: o, combina }: { oferta: Oferta; combina: boolean 
           <span className="loja-preco">{NOME_FAIXA[o.faixa].preco}</span>
           {o.naColecao
             ? <span className="loja-selo loja-selo-tenho">Você tem</span>
-            : combina && <span className="loja-selo">Combina hoje</span>}
+            : o.combina && <span className="loja-selo">Combina hoje</span>}
         </span>
         <Seta tamanho={16} />
       </a>

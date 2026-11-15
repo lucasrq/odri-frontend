@@ -1063,6 +1063,17 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .loja-selo { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--creme); color: var(--creme-texto); white-space: nowrap; }
 .loja-selo-tenho { background: var(--tela); color: var(--apagado); }
 
+/* Filtro "Combina hoje": liga/desliga, na cor do selo */
+.loja-filtro-combina { display: inline-flex; align-items: center; gap: 7px; border-style: dashed; }
+.loja-filtro-check {
+  width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid currentColor;
+  display: grid; place-items: center; font-size: 11px; line-height: 1;
+}
+.loja-filtro-combina[aria-pressed="true"] {
+  background: var(--creme); color: var(--creme-texto); border-color: var(--creme-texto); border-style: solid;
+}
+.loja-ver-mais { align-self: center; margin-top: 14px; display: inline-flex; gap: 6px; }
+
 .vitrine-ver { margin-top: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .vitrine-ver svg { transition: transform 0.3s var(--suave); }
 .vitrine-ver:hover svg { transform: translateX(3px); }
@@ -1071,7 +1082,8 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 /* Loja: busca, gênero e ordem */
 .loja-controles { display: flex; flex-direction: column; gap: 12px; }
 .loja-busca { max-width: 520px; }
-.loja-linha { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.loja-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.loja-linha .loja-ordem { margin-left: auto; }
 .loja-ordem {
   display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
   border: 1.5px solid var(--borda-forte); background: var(--superficie); color: var(--texto);

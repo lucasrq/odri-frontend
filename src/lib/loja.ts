@@ -15,6 +15,8 @@ export type Oferta = {
   link: string
   genero: Genero | null
   naColecao: boolean
+  /** combina com o clima e a hora de agora (só vem quando o catálogo recebe o tempo) */
+  combina: boolean
 }
 
 export type Genero = 'MASCULINO' | 'FEMININO' | 'UNISSEX'
@@ -27,12 +29,13 @@ export type RespostaLoja = { tempo: string; titulo: string; ofertas: Oferta[] }
 export const buscarLoja = (tempo?: string) =>
   api<RespostaLoja>(`/loja${tempo ? `?tempo=${encodeURIComponent(tempo)}` : ''}`)
 
-/** Catálogo inteiro da Loja (GET /loja/catalogo). genero vazio = todos. */
-export function buscarCatalogo(filtro: { busca?: string; genero?: Genero | ''; ordem?: OrdemPreco }) {
+/** Catálogo inteiro da Loja (GET /loja/catalogo). genero vazio = todos. tempo marca quem "combina hoje". */
+export function buscarCatalogo(filtro: { busca?: string; genero?: Genero | ''; ordem?: OrdemPreco; tempo?: string }) {
   const q = new URLSearchParams()
   if (filtro.busca?.trim()) q.set('busca', filtro.busca.trim())
   if (filtro.genero) q.set('genero', filtro.genero)
   if (filtro.ordem) q.set('ordem', filtro.ordem)
+  if (filtro.tempo && filtro.tempo !== 'DESCONHECIDO') q.set('tempo', filtro.tempo)
   const texto = q.toString()
   return api<Oferta[]>(`/loja/catalogo${texto ? `?${texto}` : ''}`)
 }
