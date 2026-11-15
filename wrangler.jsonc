@@ -1,0 +1,10 @@
+// Configuração da Cloudflare (Workers): publica a pasta dist como site.
+// "single-page-application" faz qualquer rota (/app, /app/colecao...) abrir o index.html, igual ao vercel.json.
+{
+  "name": "odri",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
