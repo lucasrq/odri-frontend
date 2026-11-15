@@ -19,9 +19,10 @@ import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
 import Frasco from '../components/Frasco'
 import AdesivoStory from '../components/AdesivoStory'
+import AdesivoDia from '../components/AdesivoDia'
 import AdminPerfumes from '../components/AdminPerfumes'
 import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
-import { gerarAdesivo, gerarAdesivoColecao } from '../lib/adesivo'
+import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
 import { Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
@@ -339,7 +340,7 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
             <h2 id="titulo-pra-hoje" className="grupo-titulo">Pra hoje também</h2>
             <div className="grupo">
               {outra}
-              {sugestao.perfume && <AdesivoDoDia perfume={sugestao.perfume.nome} sugestao={sugestao} />}
+              {sugestao.perfume && <AdesivoDoDia sugestao={sugestao} />}
             </div>
           </section>
         )}
@@ -444,20 +445,22 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
   )
 }
 
-function AdesivoDoDia({ perfume, sugestao }: { perfume: string; sugestao: Sugestao }) {
-  const { temperatura, local } = sugestao
-  const linha = temperatura !== null && local ? `${Math.round(temperatura)} °C em ${local}` : local ? `Em ${local}` : ''
+function AdesivoDoDia({ sugestao }: { sugestao: Sugestao }) {
+  const perfume = sugestao.perfume!
+  const item = sugestao.analise.find((a) => a.id === perfume.id)
   return (
-    <AdesivoStory
-      titulo="Poste no seu story"
-      texto="Um adesivo com o perfume de hoje, pra colocar na sua foto."
-      nomeArquivo={perfume}
-      descricao={`Hoje eu vou de ${perfume}. ${linha}`}
-      chave={perfume + linha}
-      gerar={(cor) => gerarAdesivo(perfume, linha, cor)}
-      evento="ADESIVO_DIA"
-      variante="linha"
-      resumo={`"Hoje eu vou de ${perfume}."`}
+    <AdesivoDia
+      dados={{
+        perfume: perfume.nome,
+        marca: perfume.marca,
+        familia: item?.familia,
+        intensidade: item?.intensidade,
+        temperatura: sugestao.temperatura,
+        local: sugestao.local,
+        periodo: sugestao.periodo,
+        tempo: sugestao.tempo,
+        motivo: sugestao.nadaCombina ? item?.motivo : sugestao.motivo,
+      }}
     />
   )
 }

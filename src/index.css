@@ -1237,3 +1237,26 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .admin-ranking { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; counter-reset: pos; }
 .admin-ranking li { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
 .admin-exportar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
+
+/* Adesivo do dia (Hoje): abas Story pronto / Na minha foto, prévia grande e 1 botão */
+.adesivo-dia { padding-top: 14px; border-top: 1px solid var(--borda); }
+.adesivo-abas { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: var(--tela); }
+.adesivo-abas button, .adesivo-cores button {
+  min-height: 40px; border: 0; border-radius: 999px; background: transparent; cursor: pointer;
+  font-weight: 800; font-size: 14px; color: var(--apagado);
+}
+.adesivo-abas button[aria-selected='true'] { background: var(--superficie); color: var(--texto); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.adesivo-cores { display: flex; gap: 6px; }
+.adesivo-cores button { min-height: 34px; padding: 0 14px; border: 1.5px solid var(--borda-forte); font-size: 13px; }
+.adesivo-cores button[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
+.adesivo-previa { display: grid; place-items: center; border-radius: 18px; overflow: hidden; }
+.adesivo-previa img { display: block; width: 100%; height: auto; }
+.adesivo-previa-story { width: min(240px, 70%); aspect-ratio: 9 / 16; margin: 0 auto; background: var(--tela); box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.5); }
+.adesivo-previa-selo {
+  padding: 22px 18px; min-height: 160px;
+  /* "foto" de exemplo atrás do selo: mostra como fica em cima de uma imagem */
+  background: radial-gradient(ellipse 60% 50% at 25% 30%, rgba(255, 214, 170, 0.55), transparent 70%), linear-gradient(160deg, #8C7A68, #4A4640 55%, #2F3438);
+}
+.adesivo-previa-selo img { max-width: 340px; }
+.adesivo-previa .adesivo-carregando { color: var(--apagado); }
+.adesivo-dia .botao-campo { width: 100%; }

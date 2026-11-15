@@ -1,7 +1,7 @@
 /**
- * Adesivo do story: "Hoje eu vou de <perfume>." com fundo transparente.
- * A imagem é desenhada aqui no celular (canvas), sem servidor.
- * Branco = pra foto escura. Preto = pra foto clara.
+ * Adesivos do story, desenhados aqui no celular (canvas), sem servidor.
+ * Adesivo do dia (Selo e Story pronto) e adesivo "Minha coleção".
+ * Coleção: branco = pra foto escura, preto = pra foto clara.
  */
 export type CorAdesivo = 'branco' | 'preto'
 
@@ -41,66 +41,314 @@ function desenharLogo(ctx: Ctx, x: number, y: number, altura: number, cor: strin
   ctx.restore()
 }
 
-export async function gerarAdesivo(perfume: string, linha: string, cor: CorAdesivo): Promise<Blob> {
-  await Promise.all([
-    document.fonts.load('800 120px Figtree'),
-    document.fonts.load('700 32px Figtree'),
-  ]).catch(() => {})
+/* ---------- Adesivo do dia: Selo e Story pronto (15/11) ---------- */
 
-  const c = CORES[cor]
+export type CorSelo = 'creme' | 'preto'
+type Periodo = 'MANHA' | 'TARDE' | 'NOITE'
+
+/** O que o adesivo do dia mostra (vem da sugestão de hoje). */
+export type DadosDia = {
+  perfume: string
+  marca?: string | null
+  familia?: string | null
+  intensidade?: string | null
+  temperatura: number | null
+  local: string | null
+  periodo: Periodo
+  tempo?: string
+  motivo?: string
+}
+
+const NOME_FAM: Record<string, string> = {
+  FRESCO: 'Fresco', CITRICO: 'Cítrico', FLORAL: 'Floral', DOCE: 'Doce', AMADEIRADO: 'Amadeirado', ORIENTAL: 'Oriental',
+}
+const NOME_INT: Record<string, string> = { LEVE: 'Leve', MEDIA: 'Média', FORTE: 'Forte' }
+const NIVEL: Record<string, number> = { LEVE: 0.42, MEDIA: 0.64, FORTE: 0.88 }
+const POS_PERIODO: Record<Periodo, number> = { MANHA: 0.16, TARDE: 0.5, NOITE: 0.84 }
+
+const TEMA_SELO = {
+  creme: { fundo: '#F6EFE4', texto: '#17191C', apagado: '#6B5A45', vidro: 'rgba(255,255,255,0.75)', contorno: 'rgba(23,25,28,0.22)' },
+  preto: { fundo: '#17191C', texto: '#EEF0F0', apagado: '#B9B2A6', vidro: 'rgba(255,255,255,0.14)', contorno: 'rgba(255,255,255,0.35)' },
+}
+
+function fonteDe(ctx: Ctx, familia: 'Poppins' | 'Figtree', peso: number, tamanho: number, espaco = 0) {
+  ctx.font = `${peso} ${tamanho}px ${familia}, Figtree, system-ui, sans-serif`
+  ctx.letterSpacing = `${espaco}px`
+}
+
+async function carregarFontes() {
+  await Promise.all([
+    document.fonts.load('800 120px Poppins'),
+    document.fonts.load('800 30px Figtree'),
+    document.fonts.load('700 34px Figtree'),
+    document.fonts.load('600 34px Figtree'),
+  ]).catch(() => {})
+}
+
+/** O mesmo frasco do componente Frasco (viewBox 100 x 140), em pixels. */
+function desenharFrasco(ctx: Ctx, x: number, y: number, largura: number, d: DadosDia, cores: { tampa: string; vidro: string; contorno: string }) {
+  const s = largura / 100
+  const nivel = NIVEL[d.intensidade ?? ''] ?? 0.6
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.scale(s, s)
+  ctx.fillStyle = cores.tampa
+  ctx.beginPath(); ctx.roundRect(36, 4, 28, 18, 5); ctx.fill()
+  ctx.globalAlpha = 0.8
+  ctx.beginPath(); ctx.roundRect(42, 22, 16, 12, 2); ctx.fill()
+  ctx.globalAlpha = 1
+  ctx.fillStyle = cores.vidro
+  ctx.beginPath(); ctx.roundRect(16, 34, 68, 84, 16); ctx.fill()
+  ctx.save()
+  ctx.beginPath(); ctx.roundRect(16, 34, 68, 84, 16); ctx.clip()
+  ctx.fillStyle = COR_FAMILIA[d.familia ?? ''] ?? '#AEB4BA'
+  const topo = 118 - 84 * nivel
+  ctx.fillRect(16, topo, 68, 118 - topo)
+  ctx.restore()
+  ctx.strokeStyle = cores.contorno
+  ctx.lineWidth = 2.5
+  ctx.beginPath(); ctx.roundRect(16, 34, 68, 84, 16); ctx.stroke()
+  ctx.restore()
+}
+
+/** Régua do dia: faixa do amanhecer à noite com a bolinha na hora de agora. */
+function desenharRegua(ctx: Ctx, x: number, y: number, largura: number, periodo: Periodo, fundoPonto: string, bordaPonto: string) {
+  const g = ctx.createLinearGradient(x, 0, x + largura, 0)
+  g.addColorStop(0, '#F3D9A8'); g.addColorStop(0.45, '#D08A2E'); g.addColorStop(0.8, '#5B4A6B'); g.addColorStop(1, '#17191C')
+  ctx.fillStyle = g
+  ctx.beginPath(); ctx.roundRect(x, y, largura, 12, 6); ctx.fill()
+  const px = x + largura * POS_PERIODO[periodo]
+  ctx.fillStyle = fundoPonto
+  ctx.strokeStyle = bordaPonto
+  ctx.lineWidth = 7
+  ctx.beginPath(); ctx.arc(px, y + 6, 16, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+}
+
+/** Diminui a fonte até o texto caber na largura. */
+function caber(ctx: Ctx, texto: string, familia: 'Poppins' | 'Figtree', peso: number, maximo: number, minimo: number, largura: number) {
+  let t = maximo
+  fonteDe(ctx, familia, peso, t, -t * 0.04)
+  while (t > minimo && ctx.measureText(texto).width > largura) {
+    t -= 4
+    fonteDe(ctx, familia, peso, t, -t * 0.04)
+  }
+  return t
+}
+
+/** Quebra o texto em linhas que cabem na largura (no máximo "max" linhas). */
+function quebrar(ctx: Ctx, texto: string, largura: number, max: number) {
+  const linhas: string[] = []
+  let atual = ''
+  for (const palavra of texto.split(/\s+/)) {
+    const teste = atual ? `${atual} ${palavra}` : palavra
+    if (ctx.measureText(teste).width > largura && atual) {
+      linhas.push(atual)
+      atual = palavra
+      if (linhas.length === max) break
+    } else {
+      atual = teste
+    }
+  }
+  if (linhas.length < max && atual) linhas.push(atual)
+  if (linhas.length === max && texto.length > linhas.join(' ').length) {
+    linhas[max - 1] = linhas[max - 1].replace(/\s*\S*$/, '') + '…'
+  }
+  return linhas
+}
+
+function linhaClima(d: DadosDia) {
+  const t = d.temperatura !== null ? `${Math.round(d.temperatura)} °C` : ''
+  return { t, local: d.local ?? '' }
+}
+
+function emBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((ok, falha) => canvas.toBlob((b) => (b ? ok(b) : falha(new Error('sem imagem'))), 'image/png'))
+}
+
+/**
+ * Selo: cartão com fundo próprio (creme ou preto) e cantos transparentes,
+ * pra pôr em cima da foto no story.
+ */
+export async function gerarSelo(d: DadosDia, cor: CorSelo): Promise<Blob> {
+  await carregarFontes()
+  const tema = TEMA_SELO[cor]
+  const W = 840, PAD = 56, BORDA = 24, FRASCO = 104
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d') as Ctx
 
-  // Medidas (nome comprido diminui pra caber)
-  fonte(ctx, 800, 36)
-  const larguraPre = ctx.measureText('Hoje eu vou de').width
-  let tamanho = 120
-  fonte(ctx, 800, tamanho, -tamanho * 0.045)
-  let larguraNome = ctx.measureText(perfume).width
-  if (larguraNome + tamanho * 0.3 > LARGURA_MAX) {
-    tamanho = Math.max(56, (tamanho * LARGURA_MAX) / (larguraNome + tamanho * 0.3))
-    fonte(ctx, 800, tamanho, -tamanho * 0.045)
-    larguraNome = ctx.measureText(perfume).width
+  const tamNome = caber(ctx, d.perfume, 'Poppins', 800, 124, 64, W - PAD * 2 - FRASCO - 24)
+  const yRotulo = PAD + 30
+  const yNome = yRotulo + 26 + tamNome * 0.92
+  const yMarca = yNome + 54
+  const yRegua = yMarca + 44
+  const yPe = yRegua + 12 + 70
+  const H = yPe + PAD - 4
+
+  canvas.width = W + BORDA * 2
+  canvas.height = H + BORDA * 2
+  ctx.translate(BORDA, BORDA)
+
+  // Cartão (sombra leve só pra destacar da foto)
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.28)'
+  ctx.shadowBlur = 18
+  ctx.shadowOffsetY = 6
+  ctx.fillStyle = tema.fundo
+  ctx.beginPath(); ctx.roundRect(0, 0, W, H, 64); ctx.fill()
+  ctx.restore()
+
+  // "HOJE EU VOU DE" + logo
+  ctx.fillStyle = tema.apagado
+  fonteDe(ctx, 'Figtree', 800, 28, 3)
+  ctx.fillText('HOJE EU VOU DE', PAD, yRotulo)
+  desenharLogo(ctx, W - PAD - (216 / 106) * 40, yRotulo - 36, 40, tema.texto, '#D08A2E')
+
+  // Nome
+  ctx.fillStyle = tema.texto
+  fonteDe(ctx, 'Poppins', 800, tamNome, -tamNome * 0.04)
+  ctx.fillText(d.perfume, PAD, yNome)
+
+  // Marca · família · força
+  const detalhe = [d.marca, d.familia && NOME_FAM[d.familia], d.intensidade && NOME_INT[d.intensidade]].filter(Boolean).join(' · ')
+  ctx.fillStyle = tema.apagado
+  fonteDe(ctx, 'Figtree', 600, 32)
+  ctx.fillText(quebrar(ctx, detalhe, W - PAD * 2 - FRASCO - 24, 1)[0] ?? '', PAD, yMarca)
+
+  // Frasco
+  desenharFrasco(ctx, W - PAD - FRASCO, yMarca - FRASCO * 1.4 + 8, FRASCO, d, { tampa: tema.texto, vidro: tema.vidro, contorno: tema.contorno })
+
+  // Régua
+  desenharRegua(ctx, PAD, yRegua, W - PAD * 2, d.periodo, tema.fundo, tema.texto)
+
+  // Rodapé: 24 °C São Paulo ........ odri.app
+  const { t, local } = linhaClima(d)
+  fonteDe(ctx, 'Figtree', 800, 34)
+  ctx.fillStyle = tema.texto
+  ctx.fillText(t, PAD, yPe)
+  const lt = t ? ctx.measureText(t + '  ').width : 0
+  fonteDe(ctx, 'Figtree', 700, 34)
+  ctx.fillStyle = tema.apagado
+  ctx.fillText(quebrar(ctx, local, W - PAD * 2 - lt - 200, 1)[0] ?? '', PAD + lt, yPe)
+  ctx.textAlign = 'right'
+  ctx.fillText('odri.app', W - PAD, yPe)
+  ctx.textAlign = 'left'
+
+  return emBlob(canvas)
+}
+
+const FUNDO_STORY: Record<Periodo, { cores: string[]; texto: string; apagado: string; cartao: string; cartaoTexto: string; cartaoApagado: string }> = {
+  MANHA: { cores: ['#FBF1E1', '#F6DDB8', '#EFC28A'], texto: '#17191C', apagado: '#5E4A30', cartao: '#17191C', cartaoTexto: '#EEF0F0', cartaoApagado: '#B9B2A6' },
+  TARDE: { cores: ['#F7E7CF', '#F2C890', '#E39A55', '#C4703A'], texto: '#17191C', apagado: '#5E3A18', cartao: '#17191C', cartaoTexto: '#EEF0F0', cartaoApagado: '#B9B2A6' },
+  NOITE: { cores: ['#3A3552', '#22243A', '#121420'], texto: '#EEF0F0', apagado: '#B7B4C8', cartao: '#F6EFE4', cartaoTexto: '#17191C', cartaoApagado: '#6B5A45' },
+}
+// "Tarde amena.", "Noite fria.", "Manhã quente."
+const ADJ_TEMPO: Record<string, string> = { CALOR: 'quente', AMENO: 'amena', FRIO: 'fria' }
+const NOME_PER: Record<Periodo, string> = { MANHA: 'Manhã', TARDE: 'Tarde', NOITE: 'Noite' }
+
+/**
+ * Story pronto (1080 x 1920): fundo na cor da hora do dia, temperatura grande e o cartão do perfume.
+ * O conteúdo fica longe das bordas de cima e de baixo, onde o Instagram põe os botões.
+ */
+export async function gerarStoryPronto(d: DadosDia): Promise<Blob> {
+  await carregarFontes()
+  const W = 1080, H = 1920, M = 90
+  const f = FUNDO_STORY[d.periodo]
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d') as Ctx
+
+  const g = ctx.createLinearGradient(0, 0, 0, H)
+  f.cores.forEach((c, i) => g.addColorStop(i / (f.cores.length - 1), c))
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+
+  // Topo: logo + "Tarde · São Paulo"
+  desenharLogo(ctx, M, 250, 64, f.texto, '#D08A2E')
+  ctx.fillStyle = f.texto
+  fonteDe(ctx, 'Figtree', 800, 34, 3)
+  ctx.textAlign = 'right'
+  ctx.fillText([NOME_PER[d.periodo], d.local].filter(Boolean).join(' · ').toUpperCase(), W - M, 302)
+  ctx.textAlign = 'left'
+
+  // Temperatura grande
+  const { t } = linhaClima(d)
+  if (t) {
+    fonteDe(ctx, 'Poppins', 800, 300, -18)
+    ctx.fillText(`${Math.round(d.temperatura as number)}°`, M - 12, 690)
   }
-  const raio = tamanho * 0.1
-  fonte(ctx, 700, 32)
-  const larguraLinha = linha ? ctx.measureText(linha).width : 0
-  const alturaLogo = 45
-  const larguraLogo = (216 / 106) * alturaLogo
+  fonteDe(ctx, 'Figtree', 700, 54)
+  const adj = ADJ_TEMPO[d.tempo ?? '']
+  ctx.fillText(adj ? `${NOME_PER[d.periodo]} ${adj}.` : ({ MANHA: 'Bom dia.', TARDE: 'Boa tarde.', NOITE: 'Boa noite.' })[d.periodo], M, t ? 790 : 690)
 
-  const base1 = MARGEM + 36
-  const base2 = base1 + 14 + tamanho * 0.86
-  const base3 = base2 + 30 + 32
-  const largura = MARGEM * 2 + Math.max(larguraPre, larguraNome + raio * 3, larguraLinha + (linha ? 22 : 0) + larguraLogo)
-  const altura = base3 + MARGEM
+  // Cartão do perfume
+  const cx = M - 10, cw = W - (M - 10) * 2, FRASCO = 132
+  fonteDe(ctx, 'Figtree', 500, 40)
+  const motivo = quebrar(ctx, d.motivo ?? '', cw - 120, 4)
+  const tamNome = caber(ctx, d.perfume, 'Poppins', 800, 128, 64, cw - 120 - FRASCO - 20)
+  const yRot = 900 + 60 + 34
+  const yNome = yRot + 30 + tamNome * 0.92
+  const yMarca = yNome + 58
+  const yMotivo = yMarca + 80
+  const ch = (yMotivo - 900) + motivo.length * 54 + 40
+  ctx.fillStyle = f.cartao
+  ctx.beginPath(); ctx.roundRect(cx, 900, cw, ch, 64); ctx.fill()
 
-  canvas.width = Math.ceil(largura * ESCALA)
-  canvas.height = Math.ceil(altura * ESCALA)
-  ctx.scale(ESCALA, ESCALA)
-  ctx.shadowColor = c.sombra
-  ctx.shadowBlur = c.desfoque
-  ctx.shadowOffsetY = 2
-  ctx.fillStyle = c.texto
-  ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = f.cartaoApagado
+  fonteDe(ctx, 'Figtree', 800, 32, 3)
+  ctx.fillText('HOJE EU VOU DE', cx + 60, yRot)
+  ctx.fillStyle = f.cartaoTexto
+  fonteDe(ctx, 'Poppins', 800, tamNome, -tamNome * 0.04)
+  ctx.fillText(d.perfume, cx + 60, yNome)
+  const detalhe = [d.marca, d.familia && NOME_FAM[d.familia], d.intensidade && NOME_INT[d.intensidade]].filter(Boolean).join(' · ')
+  ctx.fillStyle = f.cartaoApagado
+  fonteDe(ctx, 'Figtree', 600, 38)
+  ctx.fillText(quebrar(ctx, detalhe, cw - 120 - FRASCO - 20, 1)[0] ?? '', cx + 60, yMarca)
+  const escuro = f.cartao === '#17191C'
+  desenharFrasco(ctx, cx + cw - 60 - FRASCO, yMarca - FRASCO * 1.4 + 10, FRASCO, d, {
+    tampa: f.cartaoTexto,
+    vidro: escuro ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.75)',
+    contorno: escuro ? 'rgba(255,255,255,0.35)' : 'rgba(23,25,28,0.22)',
+  })
+  ctx.strokeStyle = escuro ? '#3F444B' : '#DCCFBC'
+  ctx.lineWidth = 2
+  ctx.beginPath(); ctx.moveTo(cx + 60, yMarca + 34); ctx.lineTo(cx + cw - 60, yMarca + 34); ctx.stroke()
+  ctx.fillStyle = escuro ? '#C9CDD1' : '#3A3226'
+  fonteDe(ctx, 'Figtree', 500, 40)
+  motivo.forEach((l, i) => ctx.fillText(l, cx + 60, yMotivo + i * 54))
 
-  fonte(ctx, 800, 36)
-  ctx.fillText('Hoje eu vou de', MARGEM, base1)
+  // Rodapé: pergunta + odri.app
+  const yPe = Math.max(900 + ch + 150, 1560)
+  ctx.fillStyle = f.texto
+  fonteDe(ctx, 'Figtree', 800, 50)
+  ctx.fillText('Qual é o seu de hoje?', M, yPe)
+  fonteDe(ctx, 'Figtree', 800, 40)
+  const largLink = ctx.measureText('odri.app').width + 64
+  ctx.fillStyle = f.texto
+  ctx.beginPath(); ctx.roundRect(W - M - largLink, yPe - 54, largLink, 76, 38); ctx.fill()
+  ctx.fillStyle = d.periodo === 'NOITE' ? '#17191C' : '#F6EFE4'
+  ctx.fillText('odri.app', W - M - largLink + 32, yPe - 2)
 
-  fonte(ctx, 800, tamanho, -tamanho * 0.045)
-  ctx.fillText(perfume, MARGEM, base2)
-  ctx.fillStyle = c.ponto
-  ctx.beginPath()
-  ctx.arc(MARGEM + larguraNome + raio * 1.6, base2 - raio, raio, 0, Math.PI * 2)
-  ctx.fill()
+  return emBlob(canvas)
+}
 
-  ctx.fillStyle = c.texto
-  fonte(ctx, 700, 32)
-  if (linha) ctx.fillText(linha, MARGEM, base3)
-  // o "o" do logo fica na mesma linha de base do texto
-  const xLogo = MARGEM + larguraLinha + (linha ? 22 : 0)
-  desenharLogo(ctx, xLogo, base3 - (88.5 / 106) * alturaLogo, alturaLogo, c.texto, c.ponto)
+/** Baixa direto (no Android vai pra pasta Download e aparece na galeria). */
+export function salvarNoAparelho(blob: Blob, nomeArquivo: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = nomeArquivo
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}
 
-  return new Promise((ok, falha) => canvas.toBlob((b) => (b ? ok(b) : falha(new Error('sem imagem'))), 'image/png'))
+/** "Light Blue" -> "odri-light-blue-selo-creme.png" */
+export function nomeArquivoDia(perfume: string, tipo: string) {
+  const limpo = perfume.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return `odri-${limpo || 'perfume'}-${tipo}.png`
 }
 
 /** Cor do líquido de cada família (igual ao --fam-* do CSS). */
