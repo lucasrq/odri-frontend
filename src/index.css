@@ -851,6 +851,7 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .interruptor:disabled { opacity: 0.55; cursor: default; }
 .interruptor:focus-visible { outline: 2px solid var(--texto); outline-offset: 3px; }
 .admin-status { flex: none; width: 34px; text-align: center; font-size: 20px; }
+.plus-voltar { align-self: flex-start; }
 .conta-linha-ajuste { grid-template-columns: minmax(0, 1fr) auto 14px; min-height: 58px; }
 .grupo-perigo strong { color: #C23B3B; }
 :root[data-tema='escuro'] .grupo-perigo strong { color: #F07A7A; }

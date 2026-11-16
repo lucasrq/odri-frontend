@@ -24,9 +24,9 @@ import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
 import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
-import { Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
+import { Cadeado, Check, Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 
-type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
+type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'plus' | 'admin'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
 
 const LIMITE_GRATIS = 8
@@ -114,6 +114,7 @@ export default function Painel({ tela }: { tela: Tela }) {
         )}
 
         {tela === 'conta' && <Conta cliente={cliente} aoMudarCliente={setCliente} />}
+        {tela === 'plus' && <Plus cliente={cliente} />}
         {tela === 'admin' && <AdminPerfumes />}
 
         {sugestao && <p className="painel-credito">{sugestao.creditoClima}</p>}
@@ -1198,7 +1199,7 @@ function Conta({ cliente, aoMudarCliente }: {
         <div className="grupo">
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>Plano</small><strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong></span>
-            {!cliente?.plus && <a className="grupo-acao" href="/#planos">Conhecer o Plus</a>}
+            {!cliente?.plus && <Link className="grupo-acao" to="/app/plus">Conhecer o Plus</Link>}
           </div>
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>Cidade</small><strong>{cliente?.cidade ?? 'Automática (localização)'}</strong></span>
@@ -1343,6 +1344,54 @@ function Conta({ cliente, aoMudarCliente }: {
             {erroApagar && <p className="conta-erro" role="alert">{erroApagar}</p>}
           </div>
         )}
+      </div>
+    </section>
+  )
+}
+
+/* ---------- Plus (dentro do app, sem sair pra página inicial) ---------- */
+
+const OCASIOES_PLUS = ['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
+
+function Plus({ cliente }: { cliente: Cliente | null }) {
+  return (
+    <section className="painel-pagina conta-pagina" aria-labelledby="titulo-plus">
+      <Link to="/app/conta" className="grupo-acao plus-voltar">‹ Minha conta</Link>
+      <h2 id="titulo-plus" className="painel-titulo-pagina">Seu plano e o <span className="serif destaque">Plus</span></h2>
+
+      <div className="grade-planos">
+        <div className="plano plano-principal">
+          <div className="plano-topo">
+            <h3>Grátis</h3>
+            {!cliente?.plus && <span className="selo selo-destaque">Seu plano</span>}
+          </div>
+          <p className="preco">R$ 0</p>
+          <ul className="lista-check">
+            <li><Check tamanho={22} />Perfume do dia de manhã, de tarde e de noite</li>
+            <li><Check tamanho={22} />Clima real da sua cidade</li>
+            <li><Check tamanho={22} />Sugestão do dia por e-mail</li>
+            <li><Check tamanho={22} />Até {LIMITE_GRATIS} perfumes na coleção</li>
+          </ul>
+        </div>
+
+        <div className="plano">
+          <div className="plano-topo">
+            <h3>odri Plus</h3>
+            <span className={cliente?.plus ? 'selo selo-destaque' : 'selo selo-contorno'}>
+              {cliente?.plus ? 'Seu plano' : 'Em breve'}
+            </span>
+          </div>
+          <p className="preco">R$ 9,90<span className="preco-detalhe">/mês ou R$ 59,90/ano</span></p>
+          <ul className="lista-check lista-apagada">
+            <li><Check tamanho={22} />Tudo do grátis, com coleção ilimitada</li>
+            <li><Check tamanho={22} />Aviso de manhã no celular com o perfume do dia</li>
+            <li><Check tamanho={22} />Sugestão pela ocasião: escolha onde vai e a odri ajusta</li>
+          </ul>
+          <ul className="ocasioes" aria-label="Ocasiões do Plus">
+            {OCASIOES_PLUS.map((o) => <li key={o}><Cadeado />{o}</li>)}
+          </ul>
+          <p className="nota">Quando chegar, você testa 14 dias antes de pagar. A gente avisa por aqui.</p>
+        </div>
       </div>
     </section>
   )
