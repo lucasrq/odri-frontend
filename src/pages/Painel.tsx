@@ -773,16 +773,17 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
   const [soCombina, setSoCombina] = useState(false)
   const [limite, setLimite] = useState(POR_PAGINA)
   const tempo = sugestao?.tempo
+  const graus = sugestao?.temperatura ?? null
   const temClima = !!tempo && tempo !== 'DESCONHECIDO'
 
   const carregar = useCallback(async () => {
     setErro(false)
     try {
-      setItens(await buscarCatalogo({ busca, genero, ordem, tempo }))
+      setItens(await buscarCatalogo({ busca, genero, ordem, tempo, graus }))
     } catch {
       setErro(true)
     }
-  }, [busca, genero, ordem, tempo])
+  }, [busca, genero, ordem, tempo, graus])
 
   // Espera a pessoa parar de digitar (250 ms) antes de buscar
   useEffect(() => {
@@ -827,7 +828,7 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
               aria-pressed={soCombina} onClick={() => setSoCombina((v) => !v)}
             >
               <span aria-hidden="true" className="loja-filtro-check">{soCombina ? '✓' : ''}</span>
-              Combina hoje
+              Combina agora
             </button>
           )}
           <button
@@ -869,8 +870,8 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
 
       {!erro && itens && itens.length > 0 && lista?.length === 0 && (
         <div className="cartao-suave">
-          <strong>Nenhum desses combina com hoje</strong>
-          <p>Tire o filtro "Combina hoje" pra ver todos.</p>
+          <strong>Nenhum desses combina agora</strong>
+          <p>Tire o filtro "Combina agora" pra ver todos.</p>
           <button type="button" className="botao botao-contorno botao-mini loja-tentar" onClick={() => setSoCombina(false)}>
             Ver todos
           </button>
@@ -880,7 +881,7 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
       {lista && lista.length > 0 && (
         <div className="loja-todos">
           <p className="grupo-titulo">
-            {soCombina ? `${lista.length} combinam com hoje` : busca ? `${lista.length} encontrados` : `Todos os perfumes · ${lista.length}`}
+            {soCombina ? `${lista.length} combinam agora` : busca ? `${lista.length} encontrados` : `Todos os perfumes · ${lista.length}`}
           </p>
           <ul className="grupo loja-lista">
             {lista.slice(0, limite).map((o) => <LinhaOferta key={o.id} oferta={o} />)}
@@ -901,8 +902,11 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
 }
 
 /** Por que a odri sugere esse perfume agora (uma frase curta, pelo clima). */
+/** "Combina com esta manhã / esta tarde / esta noite" (o selo muda com a hora). */
+const ESTE_PERIODO = { MANHA: 'esta manhã', TARDE: 'esta tarde', NOITE: 'esta noite' } as const
+
 const MOTIVO_TEMPO: Record<string, string> = {
-  CALOR: 'aguenta o calor', FRIO: 'esquenta o frio', AMENO: 'vai bem hoje', DESCONHECIDO: 'vai bem hoje',
+  CALOR: 'aguenta o calor', FRIO: 'esquenta o frio', AMENO: 'vai bem agora', DESCONHECIDO: 'vai bem agora',
 }
 
 /**
@@ -915,11 +919,11 @@ function CombinaHoje({ sugestao }: { sugestao: Sugestao }) {
 
   useEffect(() => {
     let ativo = true
-    buscarLoja(tempo === 'DESCONHECIDO' ? undefined : tempo)
+    buscarLoja(tempo, temperatura)
       .then((r) => { if (ativo) setOfertas(r.ofertas) })
       .catch(() => {})
     return () => { ativo = false }
-  }, [tempo])
+  }, [tempo, temperatura])
 
   if (ofertas.length === 0) return null
   const agora = [
@@ -931,7 +935,7 @@ function CombinaHoje({ sugestao }: { sugestao: Sugestao }) {
   return (
     <section className="combina-hoje" aria-labelledby="titulo-combina">
       <div className="combina-topo">
-        <h3 id="titulo-combina">Combina com hoje</h3>
+        <h3 id="titulo-combina">Combina com {ESTE_PERIODO[periodo]}</h3>
         <span>{agora}</span>
       </div>
       <p className="combina-sub">Você ainda não tem. A odri escolheu pelo clima.</p>
@@ -980,7 +984,7 @@ function LinhaOferta({ oferta: o }: { oferta: Oferta }) {
           <span className="loja-preco">{NOME_FAIXA[o.faixa].preco}</span>
           {o.naColecao
             ? <span className="loja-selo loja-selo-tenho">Você tem</span>
-            : o.combina && <span className="loja-selo">Combina hoje</span>}
+            : o.combina && <span className="loja-selo">Combina agora</span>}
         </span>
         <Seta tamanho={16} />
       </a>

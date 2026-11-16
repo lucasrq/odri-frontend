@@ -25,17 +25,23 @@ export type OrdemPreco = 'menor' | 'maior'
 /** Resposta de GET /loja (LojaDTO): até 3 ofertas, barato → médio → caro. */
 export type RespostaLoja = { tempo: string; titulo: string; ofertas: Oferta[] }
 
-/** tempo = o mesmo da sugestão do dia (CALOR, AMENO, FRIO). Sem tempo = qualquer clima. */
-export const buscarLoja = (tempo?: string) =>
-  api<RespostaLoja>(`/loja${tempo ? `?tempo=${encodeURIComponent(tempo)}` : ''}`)
+/** tempo = o mesmo da sugestão do dia (CALOR, AMENO, FRIO); graus = temperatura exata. Sem os dois = qualquer clima. */
+export function buscarLoja(tempo?: string, graus?: number | null) {
+  const q = new URLSearchParams()
+  if (tempo && tempo !== 'DESCONHECIDO') q.set('tempo', tempo)
+  if (graus != null) q.set('graus', String(graus))
+  const texto = q.toString()
+  return api<RespostaLoja>(`/loja${texto ? `?${texto}` : ''}`)
+}
 
 /** Catálogo inteiro da Loja (GET /loja/catalogo). genero vazio = todos. tempo marca quem "combina hoje". */
-export function buscarCatalogo(filtro: { busca?: string; genero?: Genero | ''; ordem?: OrdemPreco; tempo?: string }) {
+export function buscarCatalogo(filtro: { busca?: string; genero?: Genero | ''; ordem?: OrdemPreco; tempo?: string; graus?: number | null }) {
   const q = new URLSearchParams()
   if (filtro.busca?.trim()) q.set('busca', filtro.busca.trim())
   if (filtro.genero) q.set('genero', filtro.genero)
   if (filtro.ordem) q.set('ordem', filtro.ordem)
   if (filtro.tempo && filtro.tempo !== 'DESCONHECIDO') q.set('tempo', filtro.tempo)
+  if (filtro.graus != null) q.set('graus', String(filtro.graus))
   const texto = q.toString()
   return api<Oferta[]>(`/loja/catalogo${texto ? `?${texto}` : ''}`)
 }
