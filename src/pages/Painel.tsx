@@ -1218,21 +1218,17 @@ function Conta({ cliente, aoMudarCliente }: {
               <strong>Sugestão do dia por e-mail</strong>
               <small>
                 {cliente?.cidade
-                  ? 'Todo dia de manhã: o perfume da sua coleção pra manhã, a tarde e a noite, com a previsão da sua cidade.'
-                  : 'Pra receber, escolha uma cidade fixa: sem ela a odri não sabe a previsão.'}
+                  ? `Todo dia de manhã: o perfume da sua coleção pra manhã, a tarde e a noite, com a previsão de ${cliente.cidade}.`
+                  : 'Todo dia de manhã: o perfume da sua coleção pra manhã, a tarde e a noite, com a previsão de onde você abriu a odri por último.'}
               </small>
             </span>
-            {cliente?.cidade || cliente?.emailDiario ? (
-              <button
-                type="button" role="switch" className="interruptor"
-                aria-checked={!!cliente?.emailDiario} aria-labelledby="email-diario-texto"
-                disabled={salvandoEmail || !cliente} onClick={alternarEmailDiario}
-              >
-                <span className="interruptor-bolinha" />
-              </button>
-            ) : (
-              <Link className="grupo-acao" to="/app/comecar">Escolher</Link>
-            )}
+            <button
+              type="button" role="switch" className="interruptor"
+              aria-checked={!!cliente?.emailDiario} aria-labelledby="email-diario-texto"
+              disabled={salvandoEmail || !cliente} onClick={alternarEmailDiario}
+            >
+              <span className="interruptor-bolinha" />
+            </button>
           </div>
           {recadoEmail && (
             <p className={recadoEmail.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status" style={{ paddingBottom: 14 }}>

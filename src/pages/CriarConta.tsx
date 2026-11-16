@@ -19,6 +19,8 @@ export default function CriarConta() {
   const [mostrarSenha, setMostrarSenha] = useState(false)
   const [preferencia, setPreferencia] = useState<Preferencia | ''>('')
   const [aceitou, setAceitou] = useState(false)
+  // LGPD: começa desmarcado; só recebe quem marcar
+  const [querEmail, setQuerEmail] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
   const [enviadoPara, setEnviadoPara] = useState('')
@@ -39,7 +41,7 @@ export default function CriarConta() {
       options: {
         // O link do e-mail de confirmação traz a pessoa de volta pra cá
         emailRedirectTo: `${window.location.origin}/entrar`,
-        data: { nome: nome.trim(), aceitou_termos: true, preferencia },
+        data: { nome: nome.trim(), aceitou_termos: true, preferencia, email_diario: querEmail },
       },
     })
     setEnviando(false)
@@ -133,6 +135,13 @@ export default function CriarConta() {
               {mostrarSenha ? 'Esconder' : 'Mostrar'}
             </button>
           </div>
+        </label>
+
+        <label className="conta-aceite">
+          <input type="checkbox" checked={querEmail} onChange={(e) => setQuerEmail(e.target.checked)} />
+          <span>
+            Quero receber de manhã, por e-mail, o perfume certo pro meu dia. <span className="apagado">Dá pra parar quando quiser.</span>
+          </span>
         </label>
 
         <label className="conta-aceite">
