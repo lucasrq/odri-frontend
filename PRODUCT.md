@@ -43,7 +43,7 @@ A odri olha o clima da cidade e a hora do dia e escolhe, entre os perfumes que a
 ## Evidence on Hand
 
 - Nenhum depoimento, número de usuários, avaliação ou imprensa ainda. Não inventar nenhum.
-- Logo e ícones: `../../02-Carreira/Marca-Odri/` (svg e png).
+- Logo e ícones: `../Marca-Odri/` (svg e png).
 - Catálogo real ainda pequeno; parte dos perfumes no banco são de teste ("TESTE odri").
 
 ## Product Principles

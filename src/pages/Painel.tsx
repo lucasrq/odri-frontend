@@ -12,7 +12,7 @@ import {
   NOME_PERIODO, NOME_SELO, pegarLocalizacao, SAUDACAO, Sugestao,
 } from '../lib/painel'
 import {
-  buscarCatalogo, buscarLoja, Genero, marcarDicaMostrada, NOME_FAIXA, NOME_LOJA, Oferta, OrdemPreco, podeMostrarDica,
+  buscarCatalogo, buscarLoja, Genero, NOME_FAIXA, NOME_LOJA, Oferta, OrdemPreco,
 } from '../lib/loja'
 import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
@@ -284,12 +284,6 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
     setVerAnalise(abrir)
     if (abrir) requestAnimationFrame(() => analiseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
-  // Dica da Loja num dia normal: decide uma vez ao abrir (no máximo 1 a cada 3 dias)
-  const [dicaHoje, setDicaHoje] = useState(false)
-  const idCliente = cliente?.id
-  useEffect(() => { if (idCliente) setDicaHoje(podeMostrarDica(idCliente)) }, [idCliente])
-  const marcarDica = useCallback(() => { if (cliente) marcarDicaMostrada(cliente.id) }, [cliente])
-
   if (estado === 'carregando') {
     return <div className="cartao-tinta cartao-carregando" aria-busy="true"><p>Escolhendo seu perfume…</p></div>
   }
@@ -327,12 +321,19 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
   const combinam = sugestao.analise.filter((p) => p.selo === 'COMBINA').length
   const emAnalise = sugestao.analise.filter((p) => p.selo === 'EM_ANALISE').length
   const outra = !sugestao.nadaCombina ? <OutraOpcao sugestao={sugestao} /> : null
+  // A Loja só aparece no Hoje quando nenhum perfume da coleção combina de verdade (nota abaixo de 70)
+  const semCombina = !!sugestao.perfume && notaDoMelhor(sugestao) < COMBINA_A_PARTIR
 
   return (
     <div className="painel-grade" data-analise={verAnalise ? 'aberta' : 'fechada'}>
       <div className="painel-col painel-col-hoje">
         <MelhorDoDia sugestao={sugestao} />
-        {sugestao.nadaCombina && <DicaLoja tempo={sugestao.tempo} titulo="Falta na sua coleção" />}
+        {semCombina && (
+          <DicaLoja
+            tempo={sugestao.tempo} graus={sugestao.temperatura}
+            titulo={sugestao.nadaCombina ? 'Falta na sua coleção' : 'Pra hoje, faltou um assim'}
+          />
+        )}
 
         {(outra || sugestao.perfume) && (
           <section aria-labelledby="titulo-pra-hoje">
@@ -342,10 +343,6 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
               {sugestao.perfume && <AdesivoDoDia sugestao={sugestao} />}
             </div>
           </section>
-        )}
-
-        {!sugestao.nadaCombina && dicaHoje && (
-          <DicaLoja tempo={sugestao.tempo} titulo="Uma dica pra sua coleção" aoMostrar={marcarDica} />
         )}
 
         <section aria-labelledby="titulo-sua-colecao">
@@ -399,6 +396,10 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
   )
 }
 
+/** Mesma régua do back: 70 ou mais = combina. */
+const COMBINA_A_PARTIR = 70
+const notaDoMelhor = (s: Sugestao) => s.analise.find((a) => a.id === s.perfume?.id)?.nota ?? 0
+
 function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
   const { perfume, nadaCombina } = sugestao
   if (!perfume) {
@@ -410,12 +411,14 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
     )
   }
   const item = sugestao.analise.find((a) => a.id === perfume.id)
+  const fraco = notaDoMelhor(sugestao) < COMBINA_A_PARTIR
+  const rotulo = !fraco ? 'Melhor pra hoje' : nadaCombina ? 'O menos pior da sua coleção' : 'O melhor da sua coleção agora'
   return (
-    <section className="cartao-tinta" aria-label={nadaCombina ? 'O melhor da sua coleção' : 'Melhor pra hoje'}>
+    <section className="cartao-tinta" aria-label={rotulo}>
       <div className="cartao-linha">
-        <span className="cartao-rotulo">{nadaCombina ? 'O melhor da sua coleção' : 'Melhor pra hoje'}</span>
+        <span className="cartao-rotulo">{rotulo}</span>
         {item?.nota != null && (
-          <span className={nadaCombina ? 'cartao-nota cartao-nota-fraca' : 'cartao-nota'}>{item.nota}% combina</span>
+          <span className={fraco ? 'cartao-nota cartao-nota-fraca' : 'cartao-nota'}>{item.nota}% combina</span>
         )}
       </div>
       <div className="cartao-perfume">
@@ -433,11 +436,11 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
       <div className="cartao-motivo">
         {item?.nota != null && (
           <div className="cartao-medidor" aria-hidden="true">
-            <i className={nadaCombina ? 'fraco' : ''} style={{ width: `${item.nota}%` }} />
+            <i className={fraco ? 'fraco' : ''} style={{ width: `${item.nota}%` }} />
           </div>
         )}
         <p className="cartao-texto">
-          {nadaCombina ? `${item?.motivo ?? ''} Hoje, use pouco: 1 borrifada no pescoço.` : sugestao.motivo}
+          {nadaCombina ? `${sugestao.motivo} Hoje, use pouco: 1 borrifada no pescoço.` : sugestao.motivo}
         </p>
       </div>
     </section>
@@ -739,7 +742,7 @@ function Colecao({ cliente, sugestao, aoMudar }: {
       )}
 
       {itens && itens.length > 0 && sugestao && (
-        <DicaLoja tempo={sugestao.tempo} titulo="Combinaria com a sua coleção" />
+        <DicaLoja tempo={sugestao.tempo} graus={sugestao.temperatura} titulo="Combinaria com a sua coleção" />
       )}
 
       {erro && <p className="conta-erro" role="alert">{erro}</p>}
@@ -996,8 +999,9 @@ function LinhaOferta({ oferta: o }: { oferta: Oferta }) {
  * Uma sugestão da Loja no meio do app (Hoje e Coleção): 1 perfume que a pessoa não tem
  * e que combina com o clima de agora. Some sozinha se não houver nada pra sugerir.
  */
-function DicaLoja({ tempo, titulo, aoMostrar }: {
+function DicaLoja({ tempo, graus, titulo, aoMostrar }: {
   tempo?: string
+  graus?: number | null
   titulo: string
   aoMostrar?: () => void
 }) {
@@ -1006,14 +1010,14 @@ function DicaLoja({ tempo, titulo, aoMostrar }: {
 
   useEffect(() => {
     let ativo = true
-    buscarLoja(tempo)
+    buscarLoja(tempo, graus)
       .then((r) => {
         if (!ativo || r.ofertas.length === 0) return
         setOferta(r.ofertas[Math.floor(Math.random() * r.ofertas.length)])
       })
       .catch(() => {})
     return () => { ativo = false }
-  }, [tempo])
+  }, [tempo, graus])
 
   useEffect(() => {
     if (oferta && !avisou.current) {
