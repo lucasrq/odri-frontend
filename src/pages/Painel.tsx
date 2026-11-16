@@ -4,7 +4,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ErroApi } from '../lib/api'
 import {
-  apagarConta, Cliente, garantirCadastro, jaComecou, marcarComecou, mudarNome, mudarPreferencia, Preferencia, PREFERENCIAS,
+  apagarConta, Cliente, garantirCadastro, jaComecou, marcarComecou, mudarEmailDiario, mudarNome, mudarPreferencia, Preferencia, PREFERENCIAS,
 } from '../lib/cadastro'
 import { ItemColecao, listarColecao, mensagemColecao, tirarDaColecao } from '../lib/colecao'
 import {
@@ -1088,6 +1088,10 @@ function Conta({ cliente, aoMudarCliente }: {
   const [salvandoPref, setSalvandoPref] = useState(false)
   const [recadoPref, setRecadoPref] = useState<Recado>(null)
 
+  // Sugestão do dia por e-mail
+  const [salvandoEmail, setSalvandoEmail] = useState(false)
+  const [recadoEmail, setRecadoEmail] = useState<Recado>(null)
+
   // Senha
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
@@ -1141,6 +1145,23 @@ function Conta({ cliente, aoMudarCliente }: {
     }
   }
 
+  async function alternarEmailDiario() {
+    if (!cliente) return
+    const ligar = !cliente.emailDiario
+    setRecadoEmail(null)
+    setSalvandoEmail(true)
+    try {
+      aoMudarCliente(await mudarEmailDiario(ligar))
+      setRecadoEmail(ligar
+        ? { tipo: 'ok', texto: 'Ligado. Amanhã de manhã chega o primeiro.' }
+        : { tipo: 'ok', texto: 'Desligado. Você não recebe mais.' })
+    } catch {
+      setRecadoEmail({ tipo: 'erro', texto: 'Não deu para salvar agora. Tente de novo.' })
+    } finally {
+      setSalvandoEmail(false)
+    }
+  }
+
   async function salvarSenha(e: FormEvent) {
     e.preventDefault()
     setRecadoSenha(null)
@@ -1186,6 +1207,38 @@ function Conta({ cliente, aoMudarCliente }: {
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>E-mail</small><strong>{email || '…'}</strong></span>
           </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="grupo-titulo">E-mail da manhã</h3>
+        <div className="grupo">
+          <div className="grupo-linha conta-linha-simples">
+            <span className="grupo-texto" id="email-diario-texto">
+              <strong>Sugestão do dia por e-mail</strong>
+              <small>
+                {cliente?.cidade
+                  ? 'Todo dia de manhã: o perfume da sua coleção pra manhã, a tarde e a noite, com a previsão da sua cidade.'
+                  : 'Pra receber, escolha uma cidade fixa: sem ela a odri não sabe a previsão.'}
+              </small>
+            </span>
+            {cliente?.cidade || cliente?.emailDiario ? (
+              <button
+                type="button" role="switch" className="interruptor"
+                aria-checked={!!cliente?.emailDiario} aria-labelledby="email-diario-texto"
+                disabled={salvandoEmail || !cliente} onClick={alternarEmailDiario}
+              >
+                <span className="interruptor-bolinha" />
+              </button>
+            ) : (
+              <Link className="grupo-acao" to="/app/comecar">Escolher</Link>
+            )}
+          </div>
+          {recadoEmail && (
+            <p className={recadoEmail.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status" style={{ paddingBottom: 14 }}>
+              {recadoEmail.texto}
+            </p>
+          )}
         </div>
       </div>
 
