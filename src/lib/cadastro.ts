@@ -92,6 +92,7 @@ export async function garantirCadastro(): Promise<Cliente> {
       nome: (dados.nome as string | undefined)?.trim() || email.split('@')[0],
       aceitouTermos: dados.aceitou_termos === true,
       preferencia: PREFERENCIAS.some(([v]) => v === dados.preferencia) ? dados.preferencia : null,
+      emailDiario: dados.email_diario === true,
     }),
   })
 }
