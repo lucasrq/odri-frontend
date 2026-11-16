@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import CelularDemo, { type CidadeExemplo } from '../components/CelularDemo'
@@ -8,6 +8,7 @@ import ReguaDia from '../components/ReguaDia'
 import Topo from '../components/Topo'
 import type { Periodo } from '../lib/sugestao'
 import { useRevela } from '../lib/useRevela'
+import { useLogado } from '../lib/supabase'
 
 const CIDADES: CidadeExemplo[] = [
   { nome: 'São Paulo', graus: 22 },
@@ -52,13 +53,22 @@ export default function Inicio() {
   const [periodo, setPeriodo] = useState<Periodo>(0)
   const cidade = CIDADES[indiceCidade]
   useRevela()
+  const logado = useLogado()
+
+  // Veio de um link com #planos (ex.: "Conhecer o Plus" no app): rola até a seção
+  useEffect(() => {
+    const id = window.location.hash.slice(1)
+    if (!id) return
+    const espera = setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+    return () => clearTimeout(espera)
+  }, [])
 
   // Marcador na barra de temperatura (8 °C a 36 °C)
   const posicao = Math.max(2, Math.min(98, ((cidade.graus - 8) / 28) * 100))
 
   return (
     <>
-      <Topo />
+      <Topo logado={logado} />
       <main>
         {/* Abertura */}
         <section id="inicio" className="container hero">
@@ -68,12 +78,16 @@ export default function Inicio() {
               A odri olha o clima da sua cidade e a hora do dia e escolhe, entre os perfumes que você já tem, o que combina agora. Com o motivo.
             </p>
             <div className="hero-botoes entra" style={ordem(3)}>
-              <Link to="/criar-conta" className="botao botao-destaque botao-grande">Começar grátis <Seta /></Link>
+              {logado
+                ? <Link to="/app" className="botao botao-destaque botao-grande">Abrir o app <Seta /></Link>
+                : <Link to="/criar-conta" className="botao botao-destaque botao-grande">Começar grátis <Seta /></Link>}
               <a href="#como-funciona" className="botao botao-contorno botao-grande">Ver como funciona</a>
             </div>
-            <p className="hero-entrar entra" style={ordem(3)}>
-              Já tem conta? <Link to="/entrar">Entrar</Link>
-            </p>
+            {!logado && (
+              <p className="hero-entrar entra" style={ordem(3)}>
+                Já tem conta? <Link to="/entrar">Entrar</Link>
+              </p>
+            )}
             <ul className="garantias entra" style={ordem(4)}>
               <li><Check /> Sem cartão de crédito</li>
               <li><Check /> Não precisa entender de perfume</li>
@@ -224,7 +238,9 @@ export default function Inicio() {
                 <li><Check tamanho={22} />Clima real da sua cidade</li>
                 <li><Check tamanho={22} />Até 8 perfumes na coleção</li>
               </ul>
-              <Link to="/criar-conta" className="botao botao-escuro botao-largo">Começar grátis</Link>
+              {logado
+                ? <Link to="/app" className="botao botao-escuro botao-largo">Você já usa · Abrir o app</Link>
+                : <Link to="/criar-conta" className="botao botao-escuro botao-largo">Começar grátis</Link>}
             </div>
             <div className="plano revela">
               <div className="plano-topo"><h3>odri Plus</h3><span className="selo selo-contorno">Em breve</span></div>
@@ -263,7 +279,9 @@ export default function Inicio() {
             <IconeApp tamanho={64} />
             <h2>Amanhã de manhã, você <span className="serif destaque">já sabe.</span></h2>
             <p>Crie sua conta, adicione os perfumes que você tem e veja a sugestão de hoje.</p>
-            <Link to="/criar-conta" className="botao botao-destaque botao-grande">Começar grátis <Seta /></Link>
+            {logado
+              ? <Link to="/app" className="botao botao-destaque botao-grande">Abrir o app <Seta /></Link>
+              : <Link to="/criar-conta" className="botao botao-destaque botao-grande">Começar grátis <Seta /></Link>}
             <p className="nota-invertida">Sem cartão de crédito. Seus dados protegidos pela LGPD.</p>
           </div>
         </section>
