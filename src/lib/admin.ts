@@ -17,15 +17,18 @@ export type PerfumeAdmin = {
   criadoEm: string
 }
 
-/** O que o admin salva. link "" = tira da Loja; campo ausente = não mexe. */
-export type Classificacao = {
-  familia: string
-  intensidade: string
-  clima: string
-  genero?: Genero
-  faixa?: FaixaPreco
-  loja?: LojaParceira
-  link?: string
+/**
+ * Um perfume que um cliente cadastrou (SugestaoAdminDTO).
+ * PENDENTE = ainda não cadastrado; APROVADO = já cadastrado.
+ * avisado = a pessoa já recebeu o e-mail "seu perfume já está na odri".
+ */
+export type SugestaoAdmin = {
+  id: number
+  nome: string
+  marca: string
+  status: 'PENDENTE' | 'APROVADO'
+  avisado: boolean
+  criadoEm: string
 }
 
 /** GET /admin/numeros (NumerosDTO). semana = últimos 7 dias. */
@@ -51,7 +54,7 @@ export const buscarNumeros = () => api<Numeros>('/admin/numeros')
  * Texto pronto pra colar no Claude: as regras, o formato do SQL e a lista de pendentes.
  * O Claude devolve os updates; o Lucas cola no SQL Editor do Supabase.
  */
-export function textoPendentes(lista: PerfumeAdmin[], hoje = new Date()) {
+export function textoPendentes(lista: { id: number; nome: string; marca: string }[], hoje = new Date()) {
   const data = hoje.toLocaleDateString('pt-BR')
   return `PERFUMES PENDENTES DA ODRI (${lista.length}) - ${data}
 
@@ -63,10 +66,9 @@ Para cada perfume, escolha:
 - clima (onde ele funciona melhor): CALOR, FRIO ou TODOS
 - genero: MASCULINO, FEMININO ou UNISSEX
 - faixa_preco (frasco de 100 ml, preço médio no Brasil): ATE_150, DE_150_A_400 ou ACIMA_400
-- loja: MERCADO_LIVRE (nacionais e árabes) ou AMAZON (importados)
-- link_afiliado: link de BUSCA na loja. Exemplos:
+- loja: MERCADO_LIVRE (a odri só usa o Mercado Livre)
+- link_afiliado: link de BUSCA no Mercado Livre. Exemplo:
   https://lista.mercadolivre.com.br/kaiak-natura
-  https://www.amazon.com.br/s?k=Sauvage+Dior
 
 Regras:
 - Um update por perfume, exatamente neste formato (não mude nome nem marca):
@@ -98,7 +100,6 @@ export const listarPendentes = () => api<PerfumeAdmin[]>('/admin/pendentes')
 export const listarCatalogoAdmin = (busca: string) =>
   api<PerfumeAdmin[]>(`/admin/perfumes?busca=${encodeURIComponent(busca.trim())}`)
 
-export const salvarPerfume = (id: number, dados: Classificacao) =>
-  api<PerfumeAdmin>(`/admin/perfumes/${id}`, { method: 'PATCH', body: JSON.stringify(dados) })
+export const listarSugestoes = () => api<SugestaoAdmin[]>('/admin/sugestoes')
 
 export const recusarPerfume = (id: number) => api<void>(`/admin/perfumes/${id}`, { method: 'DELETE' })

@@ -15,6 +15,7 @@ export type Cliente = {
   plus: boolean
   cidade: string | null
   preferencia: Preferencia | null // null = conta antiga que ainda não respondeu
+  emailDiario: boolean // recebe a sugestão do dia por e-mail de manhã
 }
 
 /**
@@ -47,6 +48,11 @@ export function mudarNome(nome: string) {
 /** PUT /clientes/eu/preferencia: masculino, feminino ou os dois. */
 export function mudarPreferencia(preferencia: Preferencia) {
   return api<Cliente>('/clientes/eu/preferencia', { method: 'PUT', body: JSON.stringify({ preferencia }) })
+}
+
+/** PUT /clientes/eu/email-diario: liga ou desliga a sugestão do dia por e-mail. */
+export function mudarEmailDiario(ligado: boolean) {
+  return api<Cliente>('/clientes/eu/email-diario', { method: 'PUT', body: JSON.stringify({ ligado }) })
 }
 
 /**
