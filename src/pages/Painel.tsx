@@ -20,6 +20,7 @@ import Frasco from '../components/Frasco'
 import AdesivoStory from '../components/AdesivoStory'
 import AdesivoDia from '../components/AdesivoDia'
 import AdminPerfumes from '../components/AdminPerfumes'
+import VitrineBlackFriday, { vitrineNoAr } from '../components/VitrineBlackFriday'
 import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
 import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
@@ -811,6 +812,8 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
       <h2 id="titulo-loja" className="painel-titulo-pagina">Loja</h2>
 
       {sugestao && !busca && <CombinaHoje sugestao={sugestao} />}
+
+      {!busca && itens && vitrineNoAr() && <VitrineBlackFriday itens={itens} />}
 
       <div className="loja-controles">
         <label className="campo loja-busca">
