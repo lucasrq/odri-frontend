@@ -26,7 +26,7 @@ import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
 import { Cadeado, Check, Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 
-type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'plus' | 'admin'
+type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
 
 const LIMITE_GRATIS = 8
@@ -114,7 +114,6 @@ export default function Painel({ tela }: { tela: Tela }) {
         )}
 
         {tela === 'conta' && <Conta cliente={cliente} aoMudarCliente={setCliente} />}
-        {tela === 'plus' && <Plus cliente={cliente} />}
         {tela === 'admin' && <AdminPerfumes />}
 
         {sugestao && <p className="painel-credito">{sugestao.creditoClima}</p>}
@@ -1089,6 +1088,9 @@ function Conta({ cliente, aoMudarCliente }: {
   const [salvandoPref, setSalvandoPref] = useState(false)
   const [recadoPref, setRecadoPref] = useState<Recado>(null)
 
+  // Janela do Plus (abre por cima da Conta; o X fecha e volta pra cá)
+  const [verPlus, setVerPlus] = useState(false)
+
   // Sugestão do dia por e-mail
   const [salvandoEmail, setSalvandoEmail] = useState(false)
   const [recadoEmail, setRecadoEmail] = useState<Recado>(null)
@@ -1193,13 +1195,16 @@ function Conta({ cliente, aoMudarCliente }: {
   return (
     <section className="painel-pagina conta-pagina" aria-labelledby="titulo-conta">
       <h2 id="titulo-conta" className="painel-titulo-pagina">Minha conta</h2>
+      {verPlus && <JanelaPlus cliente={cliente} aoFechar={() => setVerPlus(false)} />}
 
       <div>
         <h3 className="grupo-titulo">Seu plano</h3>
         <div className="grupo">
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>Plano</small><strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong></span>
-            {!cliente?.plus && <Link className="grupo-acao" to="/app/plus">Conhecer o Plus</Link>}
+            {!cliente?.plus && (
+              <button type="button" className="grupo-acao botao-texto" onClick={() => setVerPlus(true)}>Conhecer o Plus</button>
+            )}
           </div>
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>Cidade</small><strong>{cliente?.cidade ?? 'Automática (localização)'}</strong></span>
@@ -1349,15 +1354,38 @@ function Conta({ cliente, aoMudarCliente }: {
   )
 }
 
-/* ---------- Plus (dentro do app, sem sair pra página inicial) ---------- */
+/* ---------- Plus: janela por cima do app, com X pra fechar ---------- */
 
 const OCASIOES_PLUS = ['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
 
-function Plus({ cliente }: { cliente: Cliente | null }) {
+function JanelaPlus({ cliente, aoFechar }: { cliente: Cliente | null; aoFechar: () => void }) {
+  const botaoFechar = useRef<HTMLButtonElement>(null)
+
+  // Esc fecha; a página de trás não rola enquanto a janela está aberta
+  useEffect(() => {
+    botaoFechar.current?.focus()
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') aoFechar() }
+    document.addEventListener('keydown', tecla)
+    const rolagem = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', tecla)
+      document.body.style.overflow = rolagem
+    }
+  }, [aoFechar])
+
   return (
-    <section className="painel-pagina conta-pagina" aria-labelledby="titulo-plus">
-      <Link to="/app/conta" className="grupo-acao plus-voltar">‹ Minha conta</Link>
-      <h2 id="titulo-plus" className="painel-titulo-pagina">Seu plano e o <span className="serif destaque">Plus</span></h2>
+    <div className="janela-fundo" onClick={aoFechar}>
+      <section
+        className="janela" role="dialog" aria-modal="true" aria-labelledby="titulo-plus"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="janela-topo">
+          <h2 id="titulo-plus" className="painel-titulo-pagina">Seu plano e o <span className="serif destaque">Plus</span></h2>
+          <button ref={botaoFechar} type="button" className="janela-fechar" onClick={aoFechar} aria-label="Fechar">
+            <Fechar tamanho={20} />
+          </button>
+        </div>
 
       <div className="grade-planos">
         <div className="plano plano-principal">
@@ -1393,7 +1421,8 @@ function Plus({ cliente }: { cliente: Cliente | null }) {
           <p className="nota">Quando chegar, você testa 14 dias antes de pagar. A gente avisa por aqui.</p>
         </div>
       </div>
-    </section>
+      </section>
+    </div>
   )
 }
 
