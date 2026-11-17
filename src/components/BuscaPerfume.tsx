@@ -4,7 +4,19 @@ import {
   adicionarNaColecao, buscarPerfumes, ItemColecao,
   mensagemColecao, PerfumeResumo, sugerirPerfume,
 } from '../lib/colecao'
+import { NOME_GENERO } from '../lib/loja'
+import { NOME_FAMILIA, NOME_INTENSIDADE } from '../lib/painel'
+import Frasco from './Frasco'
 import { Check, Mais } from './Icones'
+
+/** "Amadeirado · Média · Masculino" (só o que o perfume já tem classificado). */
+function detalhes(p: PerfumeResumo) {
+  return [
+    p.familia ? NOME_FAMILIA[p.familia] : null,
+    p.intensidade ? NOME_INTENSIDADE[p.intensidade] : null,
+    p.genero ? NOME_GENERO[p.genero as keyof typeof NOME_GENERO] : null,
+  ].filter(Boolean).join(' · ')
+}
 
 type Props = {
   /** ids que já estão na coleção (aparecem com ✓) */
@@ -93,10 +105,21 @@ export default function BuscaPerfume({ naColecao, aoAdicionar, placeholder }: Pr
             <ul className="lista-busca" aria-live="polite">
               {resultados.map((p) => {
                 const tem = naColecao.includes(p.id)
+                const linha = detalhes(p)
                 return (
                   <li key={p.id}>
-                    <button type="button" className="item-busca" onClick={() => adicionar(p.id)} disabled={tem}>
-                      <span><strong>{p.nome}</strong> <span className="apagado">{p.marca}</span></span>
+                    <button type="button" className="item-busca item-busca-frasco" onClick={() => adicionar(p.id)} disabled={tem}>
+                      <span className={`busca-frasco fundo-${(p.familia ?? 'nenhuma').toLowerCase()}`}>
+                        <Frasco familia={p.familia} intensidade={p.intensidade} pendente={!p.familia} tamanho={24} />
+                      </span>
+                      <span className="busca-info">
+                        <strong>{p.nome}</strong>
+                        <span className="apagado">{p.marca}</span>
+                        <span className="busca-detalhe">
+                          {p.familia && <i className={`busca-ponto fundo-${p.familia.toLowerCase()}`} aria-hidden="true" />}
+                          {linha || 'Em análise'}
+                        </span>
+                      </span>
                       {tem ? <Check tamanho={18} /> : <Mais tamanho={18} />}
                     </button>
                   </li>

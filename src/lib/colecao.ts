@@ -1,7 +1,15 @@
 import { api, ErroApi } from './api'
 
 /** Resultado da busca de perfumes (PerfumeResumoDTO). */
-export type PerfumeResumo = { id: number; nome: string; marca: string }
+export type PerfumeResumo = {
+  id: number
+  nome: string
+  marca: string
+  /** Só a busca manda (null = ainda em análise). Desenham o frasco e a linha de detalhes. */
+  familia?: string | null
+  intensidade?: string | null
+  genero?: string | null
+}
 
 /** Um perfume da coleção (ItemColecaoDTO). pendente = ainda em análise pelo admin. */
 export type ItemColecao = PerfumeResumo & { pendente: boolean }
