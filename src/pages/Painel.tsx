@@ -41,6 +41,9 @@ export default function Painel({ tela }: { tela: Tela }) {
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [sugestao, setSugestao] = useState<Sugestao | null>(null)
   const [estado, setEstado] = useState<Estado>('carregando')
+  // Janela do Plus: abre por cima de qualquer tela (menu do topo ou Conta); o X fecha
+  const [verPlus, setVerPlus] = useState(false)
+  const fecharPlus = useCallback(() => setVerPlus(false), [])
 
   // Busca o perfume do dia: cidade fixa (no back) ou localização do celular
   const carregar = useCallback(async (c: Cliente) => {
@@ -83,7 +86,8 @@ export default function Painel({ tela }: { tela: Tela }) {
 
   return (
     <div className="painel">
-      <Topo cliente={cliente} />
+      <Topo cliente={cliente} aoVerPlus={() => setVerPlus(true)} />
+      {verPlus && <JanelaPlus cliente={cliente} aoFechar={fecharPlus} />}
 
       <main className="painel-conteudo">
         <div className="painel-cabeca">
@@ -113,7 +117,7 @@ export default function Painel({ tela }: { tela: Tela }) {
           />
         )}
 
-        {tela === 'conta' && <Conta cliente={cliente} aoMudarCliente={setCliente} />}
+        {tela === 'conta' && <Conta cliente={cliente} aoMudarCliente={setCliente} aoVerPlus={() => setVerPlus(true)} />}
         {tela === 'admin' && <AdminPerfumes />}
 
         {sugestao && <p className="painel-credito">{sugestao.creditoClima}</p>}
@@ -128,7 +132,7 @@ export default function Painel({ tela }: { tela: Tela }) {
 
 /* ---------- Topo ---------- */
 
-function Topo({ cliente }: { cliente: Cliente | null }) {
+function Topo({ cliente, aoVerPlus }: { cliente: Cliente | null; aoVerPlus: () => void }) {
   const { tema, alternar } = useTema()
   const escuro = tema === 'escuro'
   const navegar = useNavigate()
@@ -187,7 +191,9 @@ function Topo({ cliente }: { cliente: Cliente | null }) {
               <Link role="menuitem" to="/app/conta">Minha conta</Link>
               <Link role="menuitem" to="/app/comecar">Cidade: {cliente?.cidade ?? 'automática'}</Link>
               {admin && <Link role="menuitem" to="/app/admin">Admin</Link>}
-              <a role="menuitem" href="/#planos" className="destaque-texto">Conhecer o Plus</a>
+              <button type="button" role="menuitem" className="destaque-texto" onClick={() => { setMenu(false); aoVerPlus() }}>
+                Conhecer o Plus
+              </button>
               <button type="button" role="menuitem" onClick={sair}>Sair</button>
             </div>
           )}
@@ -1072,9 +1078,10 @@ function IconeOrdem({ invertido }: { invertido: boolean }) {
 type Recado = { tipo: 'ok' | 'erro'; texto: string } | null
 const SENHA_MINIMA = 8
 
-function Conta({ cliente, aoMudarCliente }: {
+function Conta({ cliente, aoMudarCliente, aoVerPlus }: {
   cliente: Cliente | null
   aoMudarCliente: (c: Cliente) => void
+  aoVerPlus: () => void
 }) {
   const navegar = useNavigate()
   const [email, setEmail] = useState('')
@@ -1087,9 +1094,6 @@ function Conta({ cliente, aoMudarCliente }: {
   // Que perfume usa
   const [salvandoPref, setSalvandoPref] = useState(false)
   const [recadoPref, setRecadoPref] = useState<Recado>(null)
-
-  // Janela do Plus (abre por cima da Conta; o X fecha e volta pra cá)
-  const [verPlus, setVerPlus] = useState(false)
 
   // Sugestão do dia por e-mail
   const [salvandoEmail, setSalvandoEmail] = useState(false)
@@ -1195,7 +1199,6 @@ function Conta({ cliente, aoMudarCliente }: {
   return (
     <section className="painel-pagina conta-pagina" aria-labelledby="titulo-conta">
       <h2 id="titulo-conta" className="painel-titulo-pagina">Minha conta</h2>
-      {verPlus && <JanelaPlus cliente={cliente} aoFechar={() => setVerPlus(false)} />}
 
       <div>
         <h3 className="grupo-titulo">Seu plano</h3>
@@ -1203,7 +1206,7 @@ function Conta({ cliente, aoMudarCliente }: {
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>Plano</small><strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong></span>
             {!cliente?.plus && (
-              <button type="button" className="grupo-acao botao-texto" onClick={() => setVerPlus(true)}>Conhecer o Plus</button>
+              <button type="button" className="grupo-acao botao-texto" onClick={aoVerPlus}>Conhecer o Plus</button>
             )}
           </div>
           <div className="grupo-linha conta-linha-simples">
