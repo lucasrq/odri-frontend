@@ -2,11 +2,31 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ErroApi } from '../lib/api'
 import { CAPITAIS } from '../lib/cidades'
-import { ItemColecao, listarColecao, mensagemColecao, tirarDaColecao } from '../lib/colecao'
+import { adicionarNaColecao, ItemColecao, listarColecao, mensagemColecao, tirarDaColecao } from '../lib/colecao'
 import { supabase } from '../lib/supabase'
-import { marcarComecou } from '../lib/cadastro'
+import { Cliente, marcarComecou, Preferencia } from '../lib/cadastro'
+import { buscarCatalogo, Oferta } from '../lib/loja'
 import BuscaPerfume from '../components/BuscaPerfume'
-import { Fechar, Local, Logo, Seta } from '../components/Icones'
+import Frasco from '../components/Frasco'
+import { Check, Fechar, Local, Logo, Seta } from '../components/Icones'
+
+/**
+ * "Os mais usados na odri": um toque e o perfume entra na coleção (sem digitar).
+ * A ordem importa: aparecem os 9 primeiros que estão no catálogo, conforme o que a pessoa usa.
+ */
+const MAIS_USADOS: Record<Preferencia, string[]> = {
+  MASCULINO: ['Kaiak', 'Malbec', '300 Km/h', 'Club de Nuit Intense Man', 'Sauvage', 'Egeo Blue', 'Zaad', 'Quasar', '212 VIP Men', 'Asad', 'Invictus'],
+  FEMININO: ['Floratta Rose', 'Lily', 'Egeo Dolce', 'La Vie Est Belle', 'Good Girl', 'Coco Mademoiselle', 'Liz', 'Floratta Blue', 'Kiss Me', 'Kriska', 'Light Blue'],
+  OS_DOIS: ['Kaiak', 'Floratta Rose', 'Malbec', 'Lily', '300 Km/h', 'Egeo Dolce', 'Sauvage', 'La Vie Est Belle', 'Club de Nuit Intense Man', 'Good Girl', 'Egeo Blue'],
+}
+
+function escolherMaisUsados(catalogo: Oferta[], preferencia: Preferencia | null) {
+  const porNome = new Map(catalogo.map((o) => [o.nome.toLowerCase(), o]))
+  return MAIS_USADOS[preferencia ?? 'OS_DOIS']
+    .map((nome) => porNome.get(nome.toLowerCase()))
+    .filter((o): o is Oferta => !!o)
+    .slice(0, 9)
+}
 
 /**
  * Primeira vez no app, em 2 etapas:
@@ -120,11 +140,40 @@ function EtapaLocal({ aoTerminar }: { aoTerminar: () => void }) {
 
 function EtapaPerfumes({ aoTerminar }: { aoTerminar: () => void }) {
   const [colecao, setColecao] = useState<ItemColecao[]>([])
+  const [maisUsados, setMaisUsados] = useState<Oferta[]>([])
+  const [mexendo, setMexendo] = useState<number | null>(null)
   const [erro, setErro] = useState('')
 
   useEffect(() => {
     listarColecao().then(setColecao).catch(() => {})
+    // Se algo falhar, a grade só não aparece: a busca continua funcionando
+    Promise.all([api<Cliente>('/clientes/eu').catch(() => null), buscarCatalogo({})])
+      .then(([cliente, catalogo]) => setMaisUsados(escolherMaisUsados(catalogo, cliente?.preferencia ?? null)))
+      .catch(() => {})
   }, [])
+
+  const ids = colecao.map((p) => p.id)
+
+  // Um toque adiciona, outro toque tira
+  async function alternar(o: Oferta) {
+    if (mexendo !== null) return
+    setErro('')
+    setMexendo(o.id)
+    try {
+      if (ids.includes(o.id)) {
+        await tirarDaColecao(o.id)
+        setColecao((c) => c.filter((p) => p.id !== o.id))
+      } else {
+        const item = await adicionarNaColecao(o.id)
+        setColecao((c) => [...c, item])
+      }
+    } catch (e) {
+      if (e instanceof ErroApi && e.status === 409) listarColecao().then(setColecao).catch(() => {}) // já estava
+      else setErro(mensagemColecao(e))
+    } finally {
+      setMexendo(null)
+    }
+  }
 
   async function tirar(id: number) {
     setErro('')
@@ -159,8 +208,34 @@ function EtapaPerfumes({ aoTerminar }: { aoTerminar: () => void }) {
         </ul>
       )}
 
+      {maisUsados.length > 0 && (
+        <div className="mais-usados">
+          <p className="mais-usados-rotulo" id="rotulo-mais-usados">Os mais usados na odri</p>
+          <ul className="mais-usados-grade" aria-labelledby="rotulo-mais-usados">
+            {maisUsados.map((o) => {
+              const tem = ids.includes(o.id)
+              return (
+                <li key={o.id}>
+                  <button
+                    type="button" className="mais-usado" aria-pressed={tem}
+                    disabled={mexendo === o.id} onClick={() => alternar(o)}
+                    aria-label={`${o.nome}, ${o.marca}${tem ? ', na sua coleção' : ''}`}
+                  >
+                    {tem && <span className="mais-usado-ok" aria-hidden="true"><Check tamanho={12} /></span>}
+                    <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={28} />
+                    <strong>{o.nome}</strong>
+                    <small>{o.marca}</small>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <p className="divisor">ou busque o seu</p>
+        </div>
+      )}
+
       <BuscaPerfume
-        naColecao={colecao.map((p) => p.id)}
+        naColecao={ids}
         aoAdicionar={(item) => setColecao((c) => [...c, item])}
         placeholder="Busque: Sauvage, Club de Nuit…"
       />
