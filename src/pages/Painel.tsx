@@ -31,6 +31,8 @@ type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
 
 const LIMITE_GRATIS = 8
+/** O limite do grátis só aparece a partir do 6º perfume: antes disso a pessoa conhece o app sem pensar em limite. */
+const AVISAR_LIMITE_A_PARTIR = 6
 
 /**
  * Painel do app (/app, /app/colecao, /app/loja, /app/conta).
@@ -363,7 +365,7 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
               <span className="grupo-texto">
                 <strong>Adicionar perfume</strong>
                 <small>
-                  {cliente && !cliente.plus
+                  {cliente && !cliente.plus && idsColecao.length >= AVISAR_LIMITE_A_PARTIR
                     ? `${idsColecao.length} de ${LIMITE_GRATIS} no plano grátis`
                     : `${idsColecao.length} na coleção`}
                 </small>
@@ -647,8 +649,12 @@ function Colecao({ cliente, sugestao, aoMudar }: {
     <section className="painel-pagina colecao" aria-labelledby="titulo-colecao">
       <div className="colecao-cabeca">
         <h2 id="titulo-colecao" className="painel-titulo-pagina">Sua coleção</h2>
-        {gratis && itens && (
-          <p className="painel-dica">{total} de {LIMITE_GRATIS} lugares ocupados no plano grátis</p>
+        {itens && (
+          <p className="painel-dica">
+            {gratis && total >= AVISAR_LIMITE_A_PARTIR
+              ? `${total} de ${LIMITE_GRATIS} lugares ocupados no plano grátis`
+              : `${total} ${total === 1 ? 'perfume' : 'perfumes'} na coleção`}
+          </p>
         )}
       </div>
 
@@ -737,15 +743,15 @@ function Colecao({ cliente, sugestao, aoMudar }: {
             )
           })}
 
-          {/* Lugares livres do grátis: mostram quanto ainda cabe */}
-          {filtro === 'todos' && gratis && !cheia && Array.from({ length: LIMITE_GRATIS - total }, (_, i) => (
-            <li key={`livre-${i}`} className="prateleira-livre">
-              <button type="button" onClick={focarBusca} aria-label="Adicionar perfume">
+          {/* Um cartão só pra adicionar (sem mostrar quantos lugares sobram: o limite só aparece a partir do 6º) */}
+          {filtro === 'todos' && !cheia && (
+            <li className="prateleira-livre">
+              <button type="button" onClick={focarBusca}>
                 <Mais tamanho={20} />
-                <span>Lugar livre</span>
+                <span>Adicionar perfume</span>
               </button>
             </li>
-          ))}
+          )}
         </ul>
       )}
 
