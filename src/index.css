@@ -1509,3 +1509,38 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
   background: var(--destaque); color: var(--texto-no-destaque);
 }
 @media (prefers-reduced-motion: reduce) { .mais-usado { transition: none; } .mais-usado:active { transform: none; } }
+
+/* ---------- Plus: ocasiões no Hoje, chuva, janela ---------- */
+.ocasioes-hoje { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ocasioes-hoje-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ocasioes-hoje-topo .grupo-titulo { padding-bottom: 6px; }
+.ocasioes-hoje-selo { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; }
+.ocasioes-hoje-trilho {
+  display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px;
+  margin: 0 -16px; padding-inline: 16px; scroll-padding-inline: 16px;
+}
+.ocasioes-hoje-trilho::-webkit-scrollbar { display: none; }
+.ocasioes-hoje-trilho .colecao-filtro { flex: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ocasioes-hoje-trilho .colecao-filtro:disabled { opacity: 1; cursor: progress; }
+.ocasiao-trancada { color: var(--apagado); border-style: dashed; }
+.ocasiao-trancada:hover { color: var(--texto); }
+@media (min-width: 960px) { .ocasioes-hoje-trilho { flex-wrap: wrap; margin: 0; padding-inline: 2px; overflow: visible; } }
+.dia-agora-clima { flex-wrap: wrap; }
+.dia-agora-chuva {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: auto; padding: 4px 10px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; background: color-mix(in srgb, #3B7DD8 14%, var(--superficie)); color: var(--texto);
+}
+.dia-agora-chuva svg { color: #3B7DD8; }
+.plano-plus { border: 2px solid var(--destaque); }
+.plus-ate { font-size: 15px; padding: 12px 14px; border-radius: 14px; background: var(--creme); color: var(--creme-texto); }
+.plus-sem-cartao { text-align: center; margin-top: -10px; }
+.plus-pronto { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; max-width: 520px; }
+.plus-pronto-check {
+  width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--destaque); color: var(--texto-no-destaque);
+}
+.plus-pronto-check .check { color: var(--texto-no-destaque); }
+.plus-pronto-titulo { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.selo.selo-destaque { background: var(--destaque); color: var(--texto-no-destaque); }
+.ocasioes-hoje-selo { margin: 0 0 6px; padding: 4px 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+@media (max-width: 719px) { .janela .plano-plus { order: -1; } }

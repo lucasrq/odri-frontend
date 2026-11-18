@@ -71,6 +71,15 @@ export function Sol({ tamanho = 20 }: Props) {
   )
 }
 
+export function Chuva({ tamanho = 16 }: Props) {
+  return (
+    <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" {...traco} strokeWidth="2.2" aria-hidden="true">
+      <path d="M7 15a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.8 7.6 3.8 3.8 0 0 1 17.5 15H7z" />
+      <path d="M8.5 18.5l-1 2M12.5 18.5l-1 2M16.5 18.5l-1 2" />
+    </svg>
+  )
+}
+
 export function Lua({ tamanho = 20 }: Props) {
   return (
     <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" {...traco} strokeWidth="2" aria-hidden="true">

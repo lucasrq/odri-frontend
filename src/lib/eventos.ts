@@ -1,6 +1,6 @@
 import { api } from './api'
 
-export type TipoEvento = 'ADESIVO_DIA' | 'ADESIVO_COLECAO' | 'CLIQUE_LOJA'
+export type TipoEvento = 'ADESIVO_DIA' | 'ADESIVO_COLECAO' | 'CLIQUE_LOJA' | 'PLUS_ABRIU' | 'PLUS_TESTE' | 'OCASIAO'
 
 /**
  * Avisa o back que algo aconteceu (só pra contar nos números do Admin).

@@ -33,7 +33,7 @@ export const sugerirPerfume = (nome: string, marca: string) =>
 export function mensagemColecao(e: unknown) {
   if (e instanceof ErroApi) {
     if (e.status === 0) return 'Sem conexão com a odri. Tente de novo.'
-    if (e.status === 403) return 'No plano grátis cabem até 8 perfumes.'
+    if (e.status === 403) return 'No plano grátis cabem até 6 perfumes.'
     if (e.status === 429) return 'Você já sugeriu 5 perfumes novos hoje. Amanhã libera de novo.'
   }
   return 'Algo deu errado. Tente de novo.'

@@ -26,6 +26,8 @@ export type Sugestao = {
   creditoClima: string
   nadaCombina: boolean
   analise: ItemAnalise[]
+  chuva?: string | null // ex.: "Chuva às 15h", "Chovendo agora"; null = sem chuva
+  ocasiao?: string | null // nome da ocasião que entrou na conta (Plus)
 }
 
 /** Sem coordenadas = o back usa a cidade fixa do cliente. */
