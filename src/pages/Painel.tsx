@@ -89,6 +89,28 @@ export default function Painel({ tela }: { tela: Tela }) {
 
   const periodo = sugestao?.periodo ?? periodoAgora()
 
+  /**
+   * Plus: troca a ocasião NA HORA usando a sugestão que o servidor já mandou pronta (porOcasiao);
+   * o servidor só fica sabendo depois, em segundo plano. Se der erro, volta como estava.
+   */
+  async function trocarOcasiao(id: number | null) {
+    if (!cliente) return
+    const antes = { cliente, sugestao }
+    const pronta = sugestao?.porOcasiao?.[id === null ? '' : String(id)]
+    setCliente({ ...cliente, ocasiaoId: id })
+    if (pronta && sugestao) setSugestao({ ...pronta, porOcasiao: sugestao.porOcasiao })
+    try {
+      const c = await escolherOcasiao(id)
+      if (!pronta) {
+        setCliente(c)
+        await carregar(c)
+      }
+    } catch {
+      setCliente(antes.cliente)
+      setSugestao(antes.sugestao)
+    }
+  }
+
   return (
     <div className="painel">
       <Topo cliente={cliente} aoVerPlus={() => setVerPlus(true)} />
@@ -117,7 +139,7 @@ export default function Painel({ tela }: { tela: Tela }) {
             cliente={cliente}
             recarregar={() => cliente && carregar(cliente)}
             aoVerPlus={() => setVerPlus(true)}
-            aoMudarCliente={(c) => { setCliente(c); carregar(c) }}
+            aoTrocarOcasiao={trocarOcasiao}
           />
         )}
         {tela === 'loja' && <Loja preferencia={cliente?.preferencia ?? null} sugestao={sugestao} clienteId={cliente?.id ?? ''} />}
@@ -289,13 +311,13 @@ function DiaAgora({ sugestao, estado, periodo }: {
 
 /* ---------- Tela Hoje ---------- */
 
-function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoMudarCliente }: {
+function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoTrocarOcasiao }: {
   estado: Estado
   sugestao: Sugestao | null
   cliente: Cliente | null
   recarregar: () => void
   aoVerPlus: () => void
-  aoMudarCliente: (c: Cliente) => void
+  aoTrocarOcasiao: (id: number | null) => void
 }) {
   // No celular a análise fica fechada e abre pela linha "Análise da coleção"
   const [verAnalise, setVerAnalise] = useState(false)
@@ -349,7 +371,7 @@ function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoMudarCliente
   return (
     <div className="painel-grade" data-analise={verAnalise ? 'aberta' : 'fechada'}>
       <div className="painel-col painel-col-hoje">
-        <OcasioesHoje cliente={cliente} aoVerPlus={aoVerPlus} aoMudarCliente={aoMudarCliente} />
+        <OcasioesHoje cliente={cliente} aoVerPlus={aoVerPlus} aoTrocar={aoTrocarOcasiao} />
         <MelhorDoDia sugestao={sugestao} />
         {semCombina && (
           <DicaLoja
@@ -432,13 +454,12 @@ function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoMudarCliente
 
 const OCASIOES_PLUS = ['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
 
-function OcasioesHoje({ cliente, aoVerPlus, aoMudarCliente }: {
+function OcasioesHoje({ cliente, aoVerPlus, aoTrocar }: {
   cliente: Cliente | null
   aoVerPlus: () => void
-  aoMudarCliente: (c: Cliente) => void
+  aoTrocar: (id: number | null) => void
 }) {
   const [ocasioes, setOcasioes] = useState<Ocasiao[]>([])
-  const [mexendo, setMexendo] = useState<number | null>(null)
   const plus = !!cliente?.plus
 
   useEffect(() => {
@@ -448,18 +469,10 @@ function OcasioesHoje({ cliente, aoVerPlus, aoMudarCliente }: {
     listarOcasioes().then((lista) => setOcasioes([...lista].sort((a, b) => ordem(a.nome) - ordem(b.nome)))).catch(() => {})
   }, [plus])
 
-  async function escolher(id: number) {
-    if (mexendo !== null) return
+  function escolher(id: number) {
     const nova = cliente?.ocasiaoId === id ? null : id // tocar de novo tira
-    setMexendo(id)
-    try {
-      aoMudarCliente(await escolherOcasiao(nova))
-      if (nova) registrarEvento('OCASIAO', { detalhe: ocasioes.find((o) => o.id === nova)?.nome })
-    } catch {
-      /* sem conexão: fica como estava */
-    } finally {
-      setMexendo(null)
-    }
+    aoTrocar(nova)
+    if (nova) registrarEvento('OCASIAO', { detalhe: ocasioes.find((o) => o.id === nova)?.nome })
   }
 
   return (
@@ -472,7 +485,7 @@ function OcasioesHoje({ cliente, aoVerPlus, aoMudarCliente }: {
         {plus
           ? ocasioes.map((o) => (
             <button
-              key={o.id} type="button" className="colecao-filtro" disabled={mexendo !== null}
+              key={o.id} type="button" className="colecao-filtro"
               aria-pressed={cliente?.ocasiaoId === o.id} onClick={() => escolher(o.id)}
             >
               {o.nome}
@@ -515,7 +528,6 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
     >
       {ocasiao && (
         <>
-          <span className="cartao-ocasiao-fundo" aria-hidden="true"><IconeOcasiao nome={ocasiao} tamanho={160} /></span>
           <div className="cartao-ocasiao-faixa">
             <IconeOcasiao nome={ocasiao} />
             <strong>Pra {ocasiao.toLowerCase()}</strong>

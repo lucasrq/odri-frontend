@@ -28,6 +28,8 @@ export type Sugestao = {
   analise: ItemAnalise[]
   chuva?: string | null // ex.: "Chuva às 15h", "Chovendo agora"; null = sem chuva
   ocasiao?: string | null // nome da ocasião que entrou na conta (Plus)
+  /** Só Plus: a sugestão pronta de cada ocasião (chave = id; "" = sem ocasião). Troca na hora, sem esperar o servidor. */
+  porOcasiao?: Record<string, Sugestao> | null
 }
 
 /** Sem coordenadas = o back usa a cidade fixa do cliente. */
