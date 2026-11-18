@@ -1569,3 +1569,20 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .cartao-ocasiao .cartao-nota-fraca { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.45); }
 .cartao-ocasiao .cartao-medidor i { background: #fff; }
 .plus-assinar { display: flex; flex-direction: column; gap: 10px; }
+
+/* Plus no Pix */
+.plus-pix-abrir {
+  align-self: center; margin-top: 2px; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 15px; color: var(--texto-2); text-decoration: underline; text-underline-offset: 3px;
+}
+.plus-pix-abrir strong { color: var(--texto); }
+.plus-pix {
+  display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px; border-radius: 20px;
+  background: var(--tela); border: 1px solid var(--borda); text-align: center;
+}
+.plus-pix-titulo { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; }
+.plus-pix-opcoes { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.plus-pix-qr { width: 220px; height: 220px; border-radius: 14px; background: #fff; padding: 8px; }
+.plus-pix-esperando { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--texto-2); }
+.plus-pix-bolinha { width: 9px; height: 9px; border-radius: 50%; background: var(--destaque); animation: pulsa-pix 1.2s ease-in-out infinite; }
+@keyframes pulsa-pix { 50% { opacity: 0.25; } }
