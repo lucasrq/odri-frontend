@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { garantirCadastro, Cliente } from '../lib/cadastro'
 import { diaMes, PixPedido, pagarPix, statusPix } from '../lib/plus'
-import { Check } from './Icones'
+import { Check, Fechar } from './Icones'
 
 type Etapa = 'escolher' | 'gerando' | 'qr' | 'pago' | 'expirou' | 'erro'
 
 /**
  * Plus no Pix (sem cartão): 1 mês R$ 9,90 ou 1 ano R$ 59,90.
+ * Abre numa janela própria por cima de tudo (com X pra fechar), não no fim da janela do Plus.
  * Mostra o QR Code + "copia e cola" e pergunta pro servidor a cada 4 s se já caiu.
  * Não renova sozinho: perto de acabar chega um e-mail pra renovar.
  */
@@ -63,19 +65,48 @@ export default function PagarPix({ aoMudarCliente, aoFechar }: {
     } catch { /* navegador sem permissão: a pessoa copia segurando o texto */ }
   }
 
-  if (!aberto) {
-    return (
-      <button type="button" className="plus-pix-abrir" onClick={() => setAberto(true)}>
-        Sem cartão? <strong>Pagar no Pix</strong>
-      </button>
-    )
+  const botaoFechar = useRef<HTMLButtonElement>(null)
+
+  const fecharRef = useRef<() => void>(() => {})
+
+  // Esc fecha; foco no X só quando abre
+  useEffect(() => {
+    if (!aberto) return
+    botaoFechar.current?.focus()
+    const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); fecharRef.current() } }
+    document.addEventListener('keydown', tecla, true)
+    return () => document.removeEventListener('keydown', tecla, true)
+  }, [aberto])
+
+  // Fechar no X: para de perguntar ao servidor e volta pro começo (o Pix gerado só expira, nada é cobrado)
+  function fechar() {
+    if (vigia.current) window.clearInterval(vigia.current)
+    setAberto(false)
+    if (etapa !== 'pago') { setEtapa('escolher'); setPix(null) }
   }
 
-  return (
+  fecharRef.current = fechar
+
+  const abrir = (
+    <button type="button" className="plus-pix-abrir" onClick={() => setAberto(true)}>
+      Sem cartão? <strong>Pagar no Pix</strong>
+    </button>
+  )
+  if (!aberto) return abrir
+
+  const janela = (
+    <div className="janela-fundo janela-pix-fundo" onClick={fechar}>
+      <section className="janela janela-pix" role="dialog" aria-modal="true" aria-labelledby="titulo-pix" onClick={(e) => e.stopPropagation()}>
+        <div className="janela-topo">
+          <h2 id="titulo-pix" className="painel-titulo-pagina">Plus no <span className="serif destaque">Pix</span></h2>
+          <button ref={botaoFechar} type="button" className="janela-fechar" onClick={fechar} aria-label="Fechar o Pix">
+            <Fechar tamanho={20} />
+          </button>
+        </div>
     <div className="plus-pix">
       {(etapa === 'escolher' || etapa === 'gerando' || etapa === 'erro') && (
         <>
-          <p className="plus-pix-titulo">Pagar no Pix</p>
+          <p className="plus-pix-titulo">Quanto tempo de Plus?</p>
           <p className="nota">Não renova sozinho: perto de acabar, a gente te manda um e-mail pra renovar.</p>
           <div className="plus-pix-opcoes">
             <button type="button" className="botao botao-escuro botao-largo" disabled={etapa === 'gerando'} onClick={() => gerar('MENSAL')}>
@@ -113,7 +144,7 @@ export default function PagarPix({ aoMudarCliente, aoFechar }: {
         <>
           <p className="plus-pix-titulo"><Check tamanho={20} /> Pix recebido!</p>
           <p className="texto-2">Seu Plus vale até <strong>{plusAte ? diaMes(plusAte) : '…'}</strong>. Valeu por apoiar a odri.</p>
-          <button type="button" className="botao botao-destaque botao-largo" onClick={aoFechar}>Voltar pro app</button>
+          <button type="button" className="botao botao-destaque botao-largo" onClick={() => { fechar(); aoFechar() }}>Voltar pro app</button>
         </>
       )}
 
@@ -127,5 +158,9 @@ export default function PagarPix({ aoMudarCliente, aoFechar }: {
 
       <p className="nota plus-sem-cartao">Ao pagar, você aceita os <Link to="/termos" onClick={aoFechar}>Termos</Link>.</p>
     </div>
+      </section>
+    </div>
   )
+  // Portal: a janela do Pix fica por cima da janela do Plus (fora dela, senão herda a rolagem e a animação)
+  return <>{abrir}{createPortal(janela, document.body)}</>
 }
