@@ -22,6 +22,7 @@ import AdesivoDia from '../components/AdesivoDia'
 import AdminPerfumes from '../components/AdminPerfumes'
 import VitrineBlackFriday, { vitrineNoAr } from '../components/VitrineBlackFriday'
 import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
+import IconeOcasiao, { COR_OCASIAO } from '../components/IconeOcasiao'
 import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
@@ -503,10 +504,25 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
   }
   const item = sugestao.analise.find((a) => a.id === perfume.id)
   const fraco = notaDoMelhor(sugestao) < COMBINA_A_PARTIR
-  const pra = sugestao.ocasiao ? `pra ${sugestao.ocasiao}` : 'pra hoje'
-  const rotulo = !fraco ? `Melhor ${pra}` : nadaCombina ? 'O menos pior da sua coleção' : 'O melhor da sua coleção agora'
+  const ocasiao = sugestao.ocasiao ?? null
+  const rotulo = !fraco ? 'Melhor pra hoje' : nadaCombina ? 'O menos pior da sua coleção' : 'O melhor da sua coleção agora'
+  // Plus com ocasião: o cartão se pinta com a cor dela e ganha a faixa "Pra academia · até meia-noite"
   return (
-    <section className="cartao-tinta" aria-label={rotulo}>
+    <section
+      className={ocasiao ? 'cartao-tinta cartao-ocasiao' : 'cartao-tinta'}
+      style={ocasiao ? { ['--cor-ocasiao' as string]: COR_OCASIAO[ocasiao] ?? '#1F4E63' } : undefined}
+      aria-label={ocasiao ? `${rotulo}, pra ${ocasiao}` : rotulo}
+    >
+      {ocasiao && (
+        <>
+          <span className="cartao-ocasiao-fundo" aria-hidden="true"><IconeOcasiao nome={ocasiao} tamanho={160} /></span>
+          <div className="cartao-ocasiao-faixa">
+            <IconeOcasiao nome={ocasiao} />
+            <strong>Pra {ocasiao.toLowerCase()}</strong>
+            <small>até meia-noite</small>
+          </div>
+        </>
+      )}
       <div className="cartao-linha">
         <span className="cartao-rotulo">{rotulo}</span>
         {item?.nota != null && (
