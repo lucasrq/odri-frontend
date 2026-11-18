@@ -1586,3 +1586,4 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .plus-pix-esperando { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--texto-2); }
 .plus-pix-bolinha { width: 9px; height: 9px; border-radius: 50%; background: var(--destaque); animation: pulsa-pix 1.2s ease-in-out infinite; }
 @keyframes pulsa-pix { 50% { opacity: 0.25; } }
+.plus-pix-nome { font-size: 13.5px; line-height: 1.45; color: var(--texto-2); padding: 10px 12px; border-radius: 12px; background: var(--superficie); border: 1px solid var(--borda); }
