@@ -25,14 +25,15 @@ import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
 import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
-import { Cadeado, Check, Fechar, Instagram, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
+import { Cadeado, Check, Chuva, Fechar, Instagram, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
+import { comecarTestePlus, diaMes, diasAte, escolherOcasiao, listarOcasioes, Ocasiao } from '../lib/plus'
 
 type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
 
-const LIMITE_GRATIS = 8
-/** O limite do grátis só aparece a partir do 6º perfume: antes disso a pessoa conhece o app sem pensar em limite. */
-const AVISAR_LIMITE_A_PARTIR = 6
+const LIMITE_GRATIS = 6
+/** O limite do grátis só aparece a partir do 5º perfume: antes disso a pessoa conhece o app sem pensar em limite. */
+const AVISAR_LIMITE_A_PARTIR = 5
 
 /**
  * Painel do app (/app, /app/colecao, /app/loja, /app/conta).
@@ -90,7 +91,12 @@ export default function Painel({ tela }: { tela: Tela }) {
   return (
     <div className="painel">
       <Topo cliente={cliente} aoVerPlus={() => setVerPlus(true)} />
-      {verPlus && <JanelaPlus cliente={cliente} aoFechar={fecharPlus} />}
+      {verPlus && (
+        <JanelaPlus
+          cliente={cliente} aoFechar={fecharPlus}
+          aoMudarCliente={(c) => { setCliente(c); carregar(c) }}
+        />
+      )}
 
       <main className="painel-conteudo">
         <div className="painel-cabeca">
@@ -109,6 +115,8 @@ export default function Painel({ tela }: { tela: Tela }) {
             sugestao={sugestao}
             cliente={cliente}
             recarregar={() => cliente && carregar(cliente)}
+            aoVerPlus={() => setVerPlus(true)}
+            aoMudarCliente={(c) => { setCliente(c); carregar(c) }}
           />
         )}
         {tela === 'loja' && <Loja preferencia={cliente?.preferencia ?? null} sugestao={sugestao} clienteId={cliente?.id ?? ''} />}
@@ -117,6 +125,7 @@ export default function Painel({ tela }: { tela: Tela }) {
             cliente={cliente}
             sugestao={sugestao}
             aoMudar={() => cliente && carregar(cliente)}
+            aoVerPlus={() => setVerPlus(true)}
           />
         )}
 
@@ -266,6 +275,7 @@ function DiaAgora({ sugestao, estado, periodo }: {
         ) : (
           <span className="apagado">{estado === 'carregando' ? 'Vendo o clima…' : 'Clima indisponível'}</span>
         )}
+        {sugestao?.chuva && <span className="dia-agora-chuva"><Chuva />{sugestao.chuva}</span>}
       </p>
       <ReguaDia
         marcas={PERIODOS_REGUA.map((p, i) => ({
@@ -278,11 +288,13 @@ function DiaAgora({ sugestao, estado, periodo }: {
 
 /* ---------- Tela Hoje ---------- */
 
-function Hoje({ estado, sugestao, cliente, recarregar }: {
+function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoMudarCliente }: {
   estado: Estado
   sugestao: Sugestao | null
   cliente: Cliente | null
   recarregar: () => void
+  aoVerPlus: () => void
+  aoMudarCliente: (c: Cliente) => void
 }) {
   // No celular a análise fica fechada e abre pela linha "Análise da coleção"
   const [verAnalise, setVerAnalise] = useState(false)
@@ -336,6 +348,7 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
   return (
     <div className="painel-grade" data-analise={verAnalise ? 'aberta' : 'fechada'}>
       <div className="painel-col painel-col-hoje">
+        <OcasioesHoje cliente={cliente} aoVerPlus={aoVerPlus} aoMudarCliente={aoMudarCliente} />
         <MelhorDoDia sugestao={sugestao} />
         {semCombina && (
           <DicaLoja
@@ -414,6 +427,66 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
   )
 }
 
+/* ---------- Ocasiões (Plus): "Pra onde você vai hoje?" ---------- */
+
+const OCASIOES_PLUS = ['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
+
+function OcasioesHoje({ cliente, aoVerPlus, aoMudarCliente }: {
+  cliente: Cliente | null
+  aoVerPlus: () => void
+  aoMudarCliente: (c: Cliente) => void
+}) {
+  const [ocasioes, setOcasioes] = useState<Ocasiao[]>([])
+  const [mexendo, setMexendo] = useState<number | null>(null)
+  const plus = !!cliente?.plus
+
+  useEffect(() => {
+    if (!plus) return
+    // Mesma ordem da janela do Plus (o banco guarda na ordem em que foram criadas)
+    const ordem = (nome: string) => { const i = OCASIOES_PLUS.indexOf(nome); return i < 0 ? 99 : i }
+    listarOcasioes().then((lista) => setOcasioes([...lista].sort((a, b) => ordem(a.nome) - ordem(b.nome)))).catch(() => {})
+  }, [plus])
+
+  async function escolher(id: number) {
+    if (mexendo !== null) return
+    const nova = cliente?.ocasiaoId === id ? null : id // tocar de novo tira
+    setMexendo(id)
+    try {
+      aoMudarCliente(await escolherOcasiao(nova))
+      if (nova) registrarEvento('OCASIAO', { detalhe: ocasioes.find((o) => o.id === nova)?.nome })
+    } catch {
+      /* sem conexão: fica como estava */
+    } finally {
+      setMexendo(null)
+    }
+  }
+
+  return (
+    <section className="ocasioes-hoje" aria-labelledby="titulo-ocasiao">
+      <div className="ocasioes-hoje-topo">
+        <h2 id="titulo-ocasiao" className="grupo-titulo">Pra onde você vai hoje?</h2>
+        {!plus && <button type="button" className="selo selo-destaque ocasioes-hoje-selo" onClick={aoVerPlus}>Plus</button>}
+      </div>
+      <div className="ocasioes-hoje-trilho" role="group" aria-label="Ocasião de hoje">
+        {plus
+          ? ocasioes.map((o) => (
+            <button
+              key={o.id} type="button" className="colecao-filtro" disabled={mexendo !== null}
+              aria-pressed={cliente?.ocasiaoId === o.id} onClick={() => escolher(o.id)}
+            >
+              {o.nome}
+            </button>
+          ))
+          : OCASIOES_PLUS.map((nome) => (
+            <button key={nome} type="button" className="colecao-filtro ocasiao-trancada" onClick={aoVerPlus}>
+              <Cadeado />{nome}
+            </button>
+          ))}
+      </div>
+    </section>
+  )
+}
+
 /** Mesma régua do back: 70 ou mais = combina. */
 const COMBINA_A_PARTIR = 70
 const notaDoMelhor = (s: Sugestao) => s.analise.find((a) => a.id === s.perfume?.id)?.nota ?? 0
@@ -430,7 +503,8 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
   }
   const item = sugestao.analise.find((a) => a.id === perfume.id)
   const fraco = notaDoMelhor(sugestao) < COMBINA_A_PARTIR
-  const rotulo = !fraco ? 'Melhor pra hoje' : nadaCombina ? 'O menos pior da sua coleção' : 'O melhor da sua coleção agora'
+  const pra = sugestao.ocasiao ? `pra ${sugestao.ocasiao}` : 'pra hoje'
+  const rotulo = !fraco ? `Melhor ${pra}` : nadaCombina ? 'O menos pior da sua coleção' : 'O melhor da sua coleção agora'
   return (
     <section className="cartao-tinta" aria-label={rotulo}>
       <div className="cartao-linha">
@@ -587,10 +661,11 @@ const FILTROS: [Filtro, string][] = [['todos', 'Todos'], ['combinam', 'Combinam 
  * A lista vem de GET /colecao; família, intensidade e selo de hoje vêm da análise
  * da sugestão (quando ela já carregou).
  */
-function Colecao({ cliente, sugestao, aoMudar }: {
+function Colecao({ cliente, sugestao, aoMudar, aoVerPlus }: {
   cliente: Cliente | null
   sugestao: Sugestao | null
   aoMudar: () => void
+  aoVerPlus: () => void
 }) {
   const [itens, setItens] = useState<ItemColecao[] | null>(null)
   const [erro, setErro] = useState('')
@@ -662,7 +737,10 @@ function Colecao({ cliente, sugestao, aoMudar }: {
         <div className="cartao-suave">
           <span className="painel-rotulo">Coleção cheia</span>
           <strong>Os {LIMITE_GRATIS} lugares do grátis estão ocupados</strong>
-          <p>Tire um perfume para colocar outro. No Plus, que chega em breve, a coleção não tem limite.</p>
+          <p>Tire um perfume para colocar outro. No Plus a coleção não tem limite.</p>
+          <button type="button" className="botao botao-destaque botao-campo" onClick={aoVerPlus}>
+            {cliente?.testeUsado ? 'Conhecer o Plus' : 'Testar o Plus 14 dias grátis'}
+          </button>
         </div>
       ) : (
         <div className="painel-bloco colecao-busca">
@@ -1382,10 +1460,16 @@ function Conta({ cliente, aoMudarCliente, aoVerPlus }: {
         <h3 className="grupo-titulo">Seu plano</h3>
         <div className="grupo">
           <div className="grupo-linha conta-linha-simples">
-            <span className="grupo-texto"><small>Plano</small><strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong></span>
-            {!cliente?.plus && (
-              <button type="button" className="grupo-acao botao-texto" onClick={aoVerPlus}>Conhecer o Plus</button>
-            )}
+            <span className="grupo-texto">
+              <small>Plano</small>
+              <strong>{cliente?.plus ? 'Plus' : 'Grátis'}</strong>
+              {cliente?.plus && cliente.plusAte && (
+                <small>Até {diaMes(cliente.plusAte)} · faltam {diasAte(cliente.plusAte)} dias</small>
+              )}
+            </span>
+            <button type="button" className="grupo-acao botao-texto" onClick={aoVerPlus}>
+              {cliente?.plus ? 'Ver o Plus' : cliente?.testeUsado ? 'Conhecer o Plus' : 'Testar 14 dias grátis'}
+            </button>
           </div>
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>Cidade</small><strong>{cliente?.cidade ?? 'Automática (localização)'}</strong></span>
@@ -1537,10 +1621,34 @@ function Conta({ cliente, aoMudarCliente, aoVerPlus }: {
 
 /* ---------- Plus: janela por cima do app, com X pra fechar ---------- */
 
-const OCASIOES_PLUS = ['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
-
-function JanelaPlus({ cliente, aoFechar }: { cliente: Cliente | null; aoFechar: () => void }) {
+function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
+  cliente: Cliente | null
+  aoFechar: () => void
+  aoMudarCliente: (c: Cliente) => void
+}) {
   const botaoFechar = useRef<HTMLButtonElement>(null)
+  const [comecando, setComecando] = useState(false)
+  const [comecou, setComecou] = useState(false)
+  const [erro, setErro] = useState('')
+  const plus = !!cliente?.plus
+  const podeTestar = !!cliente && !plus && !cliente.testeUsado
+
+  useEffect(() => { registrarEvento('PLUS_ABRIU') }, [])
+
+  async function testar() {
+    setErro('')
+    setComecando(true)
+    try {
+      const c = await comecarTestePlus()
+      aoMudarCliente(c)
+      setComecou(true)
+      registrarEvento('PLUS_TESTE')
+    } catch {
+      setErro('Não deu para começar agora. Tente de novo em instantes.')
+    } finally {
+      setComecando(false)
+    }
+  }
 
   // Esc fecha; a página de trás não rola enquanto a janela está aberta
   useEffect(() => {
@@ -1562,12 +1670,31 @@ function JanelaPlus({ cliente, aoFechar }: { cliente: Cliente | null; aoFechar: 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="janela-topo">
-          <h2 id="titulo-plus" className="painel-titulo-pagina">Seu plano e o <span className="serif destaque">Plus</span></h2>
+          <h2 id="titulo-plus" className="painel-titulo-pagina">
+            {comecou ? <>Plus <span className="serif destaque">liberado.</span></> : <>Seu plano e o <span className="serif destaque">Plus</span></>}
+          </h2>
           <button ref={botaoFechar} type="button" className="janela-fechar" onClick={aoFechar} aria-label="Fechar">
             <Fechar tamanho={20} />
           </button>
         </div>
 
+      {comecou ? (
+        <div className="plus-pronto">
+          <span className="plus-pronto-check" aria-hidden="true"><Check tamanho={30} /></span>
+          <p className="plus-pronto-titulo">Seus 14 dias grátis começaram</p>
+          <p className="texto-2">
+            Vale até <strong>{cliente?.plusAte ? diaMes(cliente.plusAte) : '…'}</strong>. Não pedimos cartão:
+            quando acabar, você escolhe se quer assinar.
+          </p>
+          <ul className="lista-check">
+            <li><Check tamanho={22} />Escolha a ocasião lá no Hoje, em “Pra onde você vai hoje?”</li>
+            <li><Check tamanho={22} />Sua coleção agora não tem limite</li>
+          </ul>
+          <button type="button" className="botao botao-destaque botao-largo" onClick={aoFechar}>
+            Escolher a ocasião de hoje <Seta />
+          </button>
+        </div>
+      ) : (
       <div className="grade-planos">
         <div className="plano plano-principal">
           <div className="plano-topo">
@@ -1577,31 +1704,46 @@ function JanelaPlus({ cliente, aoFechar }: { cliente: Cliente | null; aoFechar: 
           <p className="preco">R$ 0</p>
           <ul className="lista-check">
             <li><Check tamanho={22} />Perfume do dia de manhã, de tarde e de noite</li>
-            <li><Check tamanho={22} />Clima real da sua cidade</li>
+            <li><Check tamanho={22} />Clima real da sua cidade, com aviso de chuva</li>
             <li><Check tamanho={22} />Sugestão do dia por e-mail</li>
             <li><Check tamanho={22} />Até {LIMITE_GRATIS} perfumes na coleção</li>
           </ul>
         </div>
 
-        <div className="plano">
+        <div className="plano plano-plus">
           <div className="plano-topo">
             <h3>odri Plus</h3>
-            <span className={cliente?.plus ? 'selo selo-destaque' : 'selo selo-contorno'}>
-              {cliente?.plus ? 'Seu plano' : 'Em breve'}
-            </span>
+            <span className="selo selo-destaque">{plus ? 'Seu plano' : podeTestar ? '14 dias grátis' : 'Plus'}</span>
           </div>
           <p className="preco">R$ 9,90<span className="preco-detalhe">/mês ou R$ 59,90/ano</span></p>
-          <ul className="lista-check lista-apagada">
-            <li><Check tamanho={22} />Tudo do grátis, com coleção ilimitada</li>
-            <li><Check tamanho={22} />Aviso de manhã no celular com o perfume do dia</li>
+          <ul className="lista-check">
             <li><Check tamanho={22} />Sugestão pela ocasião: escolha onde vai e a odri ajusta</li>
+            <li><Check tamanho={22} />Coleção sem limite</li>
+            <li><Check tamanho={22} />Tudo do grátis</li>
           </ul>
           <ul className="ocasioes" aria-label="Ocasiões do Plus">
-            {OCASIOES_PLUS.map((o) => <li key={o}><Cadeado />{o}</li>)}
+            {OCASIOES_PLUS.map((o) => <li key={o}>{!plus && <Cadeado />}{o}</li>)}
           </ul>
-          <p className="nota">Quando chegar, você testa 14 dias antes de pagar. A gente avisa por aqui.</p>
+          <p className="nota">Em breve: aviso de manhã no celular com o perfume do dia.</p>
+
+          {plus && cliente?.plusAte && (
+            <p className="plus-ate">Seu Plus vale até <strong>{diaMes(cliente.plusAte)}</strong> · faltam {diasAte(cliente.plusAte)} dias</p>
+          )}
+          {podeTestar && (
+            <>
+              <button type="button" className="botao botao-destaque botao-largo" disabled={comecando} onClick={testar}>
+                {comecando ? 'Liberando…' : 'Testar 14 dias grátis'}
+              </button>
+              <p className="nota plus-sem-cartao">Sem cartão. Quando acabar, volta pro grátis sozinho se você não assinar.</p>
+            </>
+          )}
+          {!plus && cliente?.testeUsado && (
+            <p className="nota">Seu teste já acabou. A assinatura pelo Mercado Pago abre em poucos dias, a gente avisa por aqui.</p>
+          )}
+          {erro && <p className="conta-erro" role="alert">{erro}</p>}
         </div>
       </div>
+      )}
       </section>
     </div>
   )

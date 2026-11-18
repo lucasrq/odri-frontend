@@ -37,7 +37,7 @@ const PROBLEMAS = [
 const OCASIOES =['Trabalho', 'Faculdade', 'Academia', 'Reunião', 'Encontro', 'Festa', 'Igreja', 'Praia']
 
 const DUVIDAS = [
-  { p: 'É grátis mesmo?', r: 'Sim. O plano grátis não tem prazo e não pede cartão. Você usa até 8 perfumes e recebe a sugestão de manhã, de tarde e de noite.' },
+  { p: 'É grátis mesmo?', r: 'Sim. O plano grátis não tem prazo e não pede cartão. Você usa até 6 perfumes e recebe a sugestão de manhã, de tarde e de noite.' },
   { p: 'Preciso baixar algum app?', r: 'Não. A odri funciona no navegador do celular ou do computador. É só entrar no site e criar a conta.' },
   { p: 'Preciso entender de perfume?', r: 'Não. Você só digita o nome do perfume. Família, intensidade e clima ideal de cada um a gente já cadastrou.' },
   { p: 'E se o meu perfume não estiver na lista?', r: 'Digite o nome e a marca. A gente classifica em até 24 horas e ele aparece na sua coleção.' },
@@ -235,25 +235,28 @@ export default function Inicio() {
               <p className="preco">R$ 0</p>
               <ul className="lista-check">
                 <li><Check tamanho={22} />Perfume do dia de manhã, de tarde e de noite</li>
-                <li><Check tamanho={22} />Clima real da sua cidade</li>
-                <li><Check tamanho={22} />Até 8 perfumes na coleção</li>
+                <li><Check tamanho={22} />Clima real da sua cidade, com aviso de chuva</li>
+                <li><Check tamanho={22} />Até 6 perfumes na coleção</li>
               </ul>
               {logado
                 ? <Link to="/app" className="botao botao-escuro botao-largo">Você já usa · Abrir o app</Link>
                 : <Link to="/criar-conta" className="botao botao-escuro botao-largo">Começar grátis</Link>}
             </div>
             <div className="plano revela">
-              <div className="plano-topo"><h3>odri Plus</h3><span className="selo selo-contorno">Em breve</span></div>
+              <div className="plano-topo"><h3>odri Plus</h3><span className="selo selo-destaque">14 dias grátis</span></div>
               <p className="preco">R$ 9,90<span className="preco-detalhe">/mês ou R$ 59,90/ano</span></p>
-              <ul className="lista-check lista-apagada">
-                <li><Check tamanho={22} />Tudo do grátis, com coleção ilimitada</li>
-                <li><Check tamanho={22} />Aviso de manhã no celular com o perfume do dia</li>
+              <ul className="lista-check">
                 <li><Check tamanho={22} />Sugestão pela ocasião: escolha onde vai e a odri ajusta</li>
+                <li><Check tamanho={22} />Coleção sem limite</li>
+                <li><Check tamanho={22} />Tudo do grátis</li>
               </ul>
               <ul className="ocasioes" aria-label="Ocasiões do Plus">
                 {OCASIOES.map((o) => <li key={o}><Cadeado />{o}</li>)}
               </ul>
-              <p className="nota">Quando chegar, você testa 14 dias antes de pagar.</p>
+              <p className="nota">Teste 14 dias sem cartão. Em breve: aviso de manhã no celular.</p>
+              {logado
+                ? <Link to="/app" className="botao botao-destaque botao-largo">Testar no app</Link>
+                : <Link to="/criar-conta" className="botao botao-destaque botao-largo">Criar conta e testar</Link>}
             </div>
           </div>
         </section>

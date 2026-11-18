@@ -16,6 +16,9 @@ export type Cliente = {
   cidade: string | null
   preferencia: Preferencia | null // null = conta antiga que ainda não respondeu
   emailDiario: boolean // recebe a sugestão do dia por e-mail de manhã
+  plusAte?: string | null // até quando o Plus vale (teste ou assinatura)
+  testeUsado?: boolean // os 14 dias grátis só uma vez
+  ocasiaoId?: number | null // ocasião escolhida hoje (Plus); some à meia-noite
 }
 
 /**
