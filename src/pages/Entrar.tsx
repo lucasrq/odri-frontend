@@ -40,7 +40,7 @@ export default function Entrar() {
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.slice(1))
     if (hash.get('error_code') === 'otp_expired') {
-      setErro('Esse link expirou ou já foi usado. Entre com e-mail e senha.')
+      setAviso('Esse link já foi usado ou expirou. É só entrar com e-mail e senha.')
       window.history.replaceState(null, '', '/entrar')
       return
     }
@@ -72,8 +72,9 @@ export default function Entrar() {
       setEnviando(false)
       const m = error.message.toLowerCase()
       if (m.includes('not confirmed')) {
+        // Não é erro: é só um passo que falta. Por isso vai no aviso (laranja claro), e não no vermelho.
         setNaoConfirmado(true)
-        return setErro('Falta confirmar seu e-mail. Abra o link que mandamos.')
+        return setAviso('Falta só confirmar seu e-mail. Abra o link que mandamos (veja também o spam).')
       }
       if (m.includes('invalid login')) return setErro('E-mail ou senha errados.')
       if (m.includes('rate limit')) return setErro('Muitas tentativas seguidas. Espere alguns minutos.')
@@ -131,15 +132,15 @@ export default function Entrar() {
           </div>
         </label>
 
-        {aviso && <p className="conta-aviso" role="status">{aviso}</p>}
-        {erro && (
-          <p className="conta-erro" role="alert">
-            {erro}
+        {aviso && (
+          <p className="conta-aviso" role="status">
+            {aviso}
             {naoConfirmado && (
               <> <button type="button" className="conta-link" onClick={reenviar}>Reenviar e-mail</button></>
             )}
           </p>
         )}
+        {erro && <p className="conta-erro" role="alert">{erro}</p>}
 
         <button type="submit" className="botao botao-destaque botao-largo" disabled={enviando}>
           {enviando ? 'Entrando…' : <>Entrar <Seta /></>}
