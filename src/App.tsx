@@ -23,6 +23,7 @@ export default function App() {
         <Route path="/app" element={<Painel tela="hoje" />} />
         <Route path="/app/colecao" element={<Painel tela="colecao" />} />
         <Route path="/app/loja" element={<Painel tela="loja" />} />
+        <Route path="/app/loja/:tipo" element={<Painel tela="loja" />} />
         <Route path="/app/conta" element={<Painel tela="conta" />} />
         <Route path="/app/admin" element={<Painel tela="admin" />} />
         <Route path="/app/comecar" element={<Comecar />} />
