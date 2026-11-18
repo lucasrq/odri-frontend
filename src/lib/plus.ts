@@ -18,6 +18,22 @@ export function comecarTestePlus() {
   return api<Cliente>('/clientes/eu/teste-plus', { method: 'POST' })
 }
 
+/** Assinatura do Plus no Mercado Pago (GET /pagamentos/assinatura). */
+export type Assinatura = {
+  status: 'NENHUMA' | 'PENDENTE' | 'ATIVA' | 'PAUSADA' | 'CANCELADA'
+  periodicidade: 'MENSAL' | 'ANUAL' | null
+  valor: number | null
+  proximaCobranca: string | null
+}
+
+export const minhaAssinatura = () => api<Assinatura>('/pagamentos/assinatura')
+
+/** Cria a assinatura e devolve o link do Mercado Pago (a pessoa paga lá e volta pra Conta). */
+export const assinarPlus = (periodicidade: 'MENSAL' | 'ANUAL') =>
+  api<{ url: string }>('/pagamentos/assinar', { method: 'POST', body: JSON.stringify({ periodicidade }) })
+
+export const cancelarAssinatura = () => api<Assinatura>('/pagamentos/cancelar', { method: 'POST' })
+
 /** "02/12" */
 export function diaMes(iso: string) {
   const d = new Date(iso)

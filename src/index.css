@@ -1568,3 +1568,4 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .cartao-ocasiao .cartao-nota { background: #fff; color: var(--cor-ocasiao); }
 .cartao-ocasiao .cartao-nota-fraca { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.45); }
 .cartao-ocasiao .cartao-medidor i { background: #fff; }
+.plus-assinar { display: flex; flex-direction: column; gap: 10px; }

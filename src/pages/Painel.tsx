@@ -27,7 +27,10 @@ import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
 import { Cadeado, Check, Chuva, Fechar, Instagram, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
-import { comecarTestePlus, diaMes, diasAte, escolherOcasiao, listarOcasioes, Ocasiao } from '../lib/plus'
+import {
+  Assinatura, assinarPlus, cancelarAssinatura, comecarTestePlus, diaMes, diasAte, escolherOcasiao, listarOcasioes,
+  minhaAssinatura, Ocasiao,
+} from '../lib/plus'
 
 type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
@@ -1394,6 +1397,42 @@ function Conta({ cliente, aoMudarCliente, aoVerPlus }: {
   const [aberto, setAberto] = useState<'nome' | 'pref' | 'senha' | 'apagar' | null>(null)
   const alternar = (qual: NonNullable<typeof aberto>) => setAberto(aberto === qual ? null : qual)
 
+  // Assinatura do Plus (Mercado Pago)
+  const [assinatura, setAssinatura] = useState<Assinatura | null>(null)
+  const [cancelando, setCancelando] = useState(false)
+  const [confirmarCancelar, setConfirmarCancelar] = useState(false)
+  const [recadoPlus, setRecadoPlus] = useState<Recado>(null)
+
+  // Ao abrir a Conta (e ao voltar do Mercado Pago com ?plus=voltou): confere a assinatura e atualiza o plano
+  useEffect(() => {
+    const voltou = new URLSearchParams(window.location.search).get('plus') === 'voltou'
+    minhaAssinatura().then(async (a) => {
+      setAssinatura(a)
+      if (voltou) {
+        const c = await garantirCadastro().catch(() => null)
+        if (c) aoMudarCliente(c)
+        setRecadoPlus(a.status === 'ATIVA'
+          ? { tipo: 'ok', texto: 'Pronto! Sua assinatura do Plus está ativa.' }
+          : { tipo: 'ok', texto: 'Recebemos. Assim que o Mercado Pago confirmar o pagamento, o Plus aparece aqui (leva uns minutos).' })
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    }).catch(() => {})
+  }, [aoMudarCliente])
+
+  async function cancelar() {
+    setCancelando(true)
+    setRecadoPlus(null)
+    try {
+      setAssinatura(await cancelarAssinatura())
+      setConfirmarCancelar(false)
+      setRecadoPlus({ tipo: 'ok', texto: 'Assinatura cancelada. Seu Plus continua até o fim do que você já pagou.' })
+    } catch {
+      setRecadoPlus({ tipo: 'erro', texto: 'Não deu para cancelar agora. Tente de novo em instantes.' })
+    } finally {
+      setCancelando(false)
+    }
+  }
+
   // Apagar conta
   const [confirmando, setConfirmando] = useState(false)
   const [apagando, setApagando] = useState(false)
@@ -1500,6 +1539,41 @@ function Conta({ cliente, aoMudarCliente, aoVerPlus }: {
               {cliente?.plus ? 'Ver o Plus' : cliente?.testeUsado ? 'Conhecer o Plus' : 'Testar 14 dias grátis'}
             </button>
           </div>
+          {assinatura && assinatura.status !== 'NENHUMA' && assinatura.status !== 'PENDENTE' && (
+            <div className="grupo-linha conta-linha-simples">
+              <span className="grupo-texto">
+                <small>Assinatura</small>
+                <strong>
+                  {assinatura.status === 'ATIVA'
+                    ? `${assinatura.periodicidade === 'ANUAL' ? 'R$ 59,90/ano' : 'R$ 9,90/mês'}`
+                    : assinatura.status === 'PAUSADA' ? 'Pausada' : 'Cancelada'}
+                </strong>
+                {assinatura.status === 'ATIVA' && assinatura.proximaCobranca && (
+                  <small>Próxima cobrança em {diaMes(assinatura.proximaCobranca)}</small>
+                )}
+              </span>
+              {assinatura.status === 'ATIVA' && !confirmarCancelar && (
+                <button type="button" className="grupo-acao botao-texto" onClick={() => setConfirmarCancelar(true)}>Cancelar</button>
+              )}
+            </div>
+          )}
+          {confirmarCancelar && (
+            <div className="grupo-painel">
+              <p className="texto-2">Seu Plus continua até o fim do que você já pagou. Depois volta pro grátis, sem perder nenhum perfume.</p>
+              <div className="colecao-confirma">
+                <span>Cancelar a assinatura?</span>
+                <button type="button" className="botao botao-contorno botao-mini" onClick={() => setConfirmarCancelar(false)}>Não</button>
+                <button type="button" className="botao botao-perigo botao-mini" disabled={cancelando} onClick={cancelar}>
+                  {cancelando ? 'Cancelando…' : 'Sim, cancelar'}
+                </button>
+              </div>
+            </div>
+          )}
+          {recadoPlus && (
+            <p className={recadoPlus.tipo === 'ok' ? 'conta-aviso' : 'conta-erro'} role="status" style={{ padding: '0 0 14px' }}>
+              {recadoPlus.texto}
+            </p>
+          )}
           <div className="grupo-linha conta-linha-simples">
             <span className="grupo-texto"><small>Cidade</small><strong>{cliente?.cidade ?? 'Automática (localização)'}</strong></span>
             <Link className="grupo-acao" to="/app/comecar">Trocar</Link>
@@ -1664,6 +1738,26 @@ function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
 
   useEffect(() => { registrarEvento('PLUS_ABRIU') }, [])
 
+  // Assinatura no Mercado Pago (só pra quem já passou do "testar")
+  const [assinatura, setAssinatura] = useState<Assinatura | null>(null)
+  const [indo, setIndo] = useState<'MENSAL' | 'ANUAL' | null>(null)
+  useEffect(() => {
+    if (cliente && !podeTestar) minhaAssinatura().then(setAssinatura).catch(() => {})
+  }, [cliente, podeTestar])
+  const assina = assinatura?.status === 'ATIVA'
+
+  async function assinar(periodicidade: 'MENSAL' | 'ANUAL') {
+    setErro('')
+    setIndo(periodicidade)
+    try {
+      const { url } = await assinarPlus(periodicidade)
+      window.location.href = url // paga no Mercado Pago e volta pra Conta
+    } catch {
+      setErro('Não deu para abrir o pagamento agora. Tente de novo em instantes.')
+      setIndo(null)
+    }
+  }
+
   async function testar() {
     setErro('')
     setComecando(true)
@@ -1766,8 +1860,28 @@ function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
               <p className="nota plus-sem-cartao">Sem cartão. Quando acabar, volta pro grátis sozinho se você não assinar.</p>
             </>
           )}
-          {!plus && cliente?.testeUsado && (
-            <p className="nota">Seu teste já acabou. A assinatura pelo Mercado Pago abre em poucos dias, a gente avisa por aqui.</p>
+          {assina && assinatura && (
+            <p className="plus-ate">
+              Você assina o Plus ({assinatura.periodicidade === 'ANUAL' ? 'anual' : 'mensal'})
+              {assinatura.proximaCobranca && <> · próxima cobrança em <strong>{diaMes(assinatura.proximaCobranca)}</strong></>}
+            </p>
+          )}
+          {cliente && !podeTestar && !assina && (
+            <div className="plus-assinar">
+              <button type="button" className="botao botao-destaque botao-largo" disabled={indo !== null} onClick={() => assinar('MENSAL')}>
+                {indo === 'MENSAL' ? 'Abrindo o Mercado Pago…' : 'Assinar por R$ 9,90/mês'}
+              </button>
+              <button type="button" className="botao botao-contorno botao-largo" disabled={indo !== null} onClick={() => assinar('ANUAL')}>
+                {indo === 'ANUAL' ? 'Abrindo o Mercado Pago…' : 'R$ 59,90/ano · sai R$ 4,99 por mês'}
+              </button>
+              <p className="nota plus-sem-cartao">
+                {plus && cliente.plusAte
+                  ? `Você só paga quando o teste acabar (${diaMes(cliente.plusAte)}). `
+                  : ''}
+                Pagamento no Mercado Pago. Cancele quando quiser, na sua conta.
+                Ao assinar, você aceita os <Link to="/termos" onClick={aoFechar}>Termos</Link>.
+              </p>
+            </div>
           )}
           {erro && <p className="conta-erro" role="alert">{erro}</p>}
         </div>
