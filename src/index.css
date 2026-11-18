@@ -1552,3 +1552,16 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .admin-plus-quem strong { font-size: 19px; }
 .admin-plus-estado { margin-top: 6px; align-self: flex-start; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--tela); color: var(--apagado); }
 .admin-plus-ativo { background: var(--destaque); color: var(--texto-no-destaque); }
+
+/* Cartão do Hoje com ocasião (Plus): cor da ocasião + faixa no topo + ícone grande no fundo */
+.cartao-ocasiao { position: relative; overflow: hidden; background: var(--cor-ocasiao); color: #fff; transition: background 0.4s var(--suave); }
+.cartao-ocasiao > * { position: relative; }
+.cartao-ocasiao .cartao-ocasiao-fundo { position: absolute; right: -22px; top: 28px; opacity: 0.12; color: #fff; pointer-events: none; }
+.cartao-ocasiao-faixa {
+  display: flex; align-items: center; gap: 10px; margin: -22px -22px 2px; padding: 13px 22px;
+  background: rgba(0, 0, 0, 0.22); color: #fff;
+}
+.cartao-ocasiao-faixa strong { font-size: 17px; font-weight: 800; }
+.cartao-ocasiao-faixa small { margin-left: auto; font-size: 13px; font-weight: 600; opacity: 0.75; }
+.cartao-ocasiao .cartao-rotulo, .cartao-ocasiao .cartao-marca { color: rgba(255, 255, 255, 0.72); }
+.cartao-ocasiao .cartao-medidor { background: rgba(255, 255, 255, 0.2); }
