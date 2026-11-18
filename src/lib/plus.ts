@@ -32,6 +32,21 @@ export const minhaAssinatura = () => api<Assinatura>('/pagamentos/assinatura')
 export const assinarPlus = (periodicidade: 'MENSAL' | 'ANUAL') =>
   api<{ url: string }>('/pagamentos/assinar', { method: 'POST', body: JSON.stringify({ periodicidade }) })
 
+/** Pix avulso do Plus (1 mês ou 1 ano), sem renovação automática. */
+export type PixPedido = {
+  id: string
+  status: 'PENDENTE' | 'APROVADO' | 'RECUSADO' | 'ESTORNADO'
+  copiaECola: string | null
+  qrCode: string | null // PNG em base64
+  expiraEm: string | null
+  plusAte: string | null
+}
+
+export const pagarPix = (periodicidade: 'MENSAL' | 'ANUAL') =>
+  api<PixPedido>('/pagamentos/pix', { method: 'POST', body: JSON.stringify({ periodicidade }) })
+
+export const statusPix = (id: string) => api<PixPedido>(`/pagamentos/pix/${encodeURIComponent(id)}`)
+
 export const cancelarAssinatura = () => api<Assinatura>('/pagamentos/cancelar', { method: 'POST' })
 
 /** "02/12" */

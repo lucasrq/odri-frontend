@@ -17,6 +17,7 @@ import {
 import { useTema } from '../lib/useTema'
 import BuscaPerfume from '../components/BuscaPerfume'
 import Frasco from '../components/Frasco'
+import PagarPix from '../components/PagarPix'
 import AdesivoStory from '../components/AdesivoStory'
 import AdesivoDia from '../components/AdesivoDia'
 import AdminPerfumes from '../components/AdminPerfumes'
@@ -1881,6 +1882,7 @@ function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
                 Pagamento no Mercado Pago. Cancele quando quiser, na sua conta.
                 Ao assinar, você aceita os <Link to="/termos" onClick={aoFechar}>Termos</Link>.
               </p>
+              <PagarPix aoMudarCliente={aoMudarCliente} aoFechar={aoFechar} />
             </div>
           )}
           {erro && <p className="conta-erro" role="alert">{erro}</p>}
