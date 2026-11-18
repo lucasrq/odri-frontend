@@ -1587,3 +1587,7 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .plus-pix-bolinha { width: 9px; height: 9px; border-radius: 50%; background: var(--destaque); animation: pulsa-pix 1.2s ease-in-out infinite; }
 @keyframes pulsa-pix { 50% { opacity: 0.25; } }
 .plus-pix-nome { font-size: 13.5px; line-height: 1.45; color: var(--texto-2); padding: 10px 12px; border-radius: 12px; background: var(--superficie); border: 1px solid var(--borda); }
+/* Janela do Pix: por cima da janela do Plus, menor e centralizada */
+.janela-pix-fundo { z-index: 110; }
+.janela-pix { max-width: 440px; }
+.janela-pix .plus-pix { border: 0; background: none; padding: 0; }
