@@ -6,8 +6,9 @@ import {
 import { NOME_FAIXA, NOME_GENERO } from '../lib/loja'
 import { NOME_FAMILIA, NOME_INTENSIDADE } from '../lib/painel'
 import Frasco from './Frasco'
+import AdminDarPlus from './AdminDarPlus'
 
-type Aba = 'cadastros' | 'catalogo'
+type Aba = 'cadastros' | 'catalogo' | 'plus'
 
 /**
  * Tela do admin (/app/admin). Aqui ninguém classifica nada à mão:
@@ -68,7 +69,12 @@ export default function AdminPerfumes() {
         <button type="button" role="tab" className="colecao-filtro" aria-pressed={aba === 'catalogo'} aria-selected={aba === 'catalogo'} onClick={() => setAba('catalogo')}>
           Catálogo
         </button>
+        <button type="button" role="tab" className="colecao-filtro" aria-pressed={aba === 'plus'} aria-selected={aba === 'plus'} onClick={() => setAba('plus')}>
+          Dar Plus
+        </button>
       </div>
+
+      {aba === 'plus' && permitido && <AdminDarPlus />}
 
       {aba === 'cadastros' && pendentes.length > 0 && (
         <div className="admin-exportar">
@@ -142,7 +148,8 @@ function PainelNumeros() {
 
   const caixas: [string, number, string][] = [
     ['Cadastros', n.cadastrosTotal, `+${n.cadastrosSemana} na semana · ${n.cadastrosHoje} hoje`],
-    ['Assinantes Plus', n.assinantes, 'com o Plus valendo agora'],
+    ['Plus valendo', n.assinantes, `${n.testesPlus ?? 0} testes começados · ${n.presentesPlus ?? 0} presentes`],
+    ['Abriram o Plus', n.plusAbriuTotal ?? 0, `+${n.plusAbriuSemana ?? 0} na semana · ${n.ocasioesSemana ?? 0} ocasiões`],
     ['Adesivo do dia', n.adesivoDiaTotal, `+${n.adesivoDiaSemana} na semana`],
     ['Adesivo da coleção', n.adesivoColecaoTotal, `+${n.adesivoColecaoSemana} na semana`],
     ['Cliques na Loja', n.cliquesLojaTotal, `+${n.cliquesLojaSemana} na semana`],
