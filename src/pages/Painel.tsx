@@ -528,6 +528,7 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
     >
       {ocasiao && (
         <>
+          <span className="cartao-ocasiao-fundo" aria-hidden="true"><IconeOcasiao nome={ocasiao} tamanho={160} /></span>
           <div className="cartao-ocasiao-faixa">
             <IconeOcasiao nome={ocasiao} />
             <strong>Pra {ocasiao.toLowerCase()}</strong>
