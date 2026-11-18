@@ -47,6 +47,7 @@ export default function Privacidade() {
           <li><b>Supabase:</b> guarda o login e o banco de dados.</li>
           <li><b>Render e Vercel:</b> hospedam o servidor e o site.</li>
           <li><b>Brevo:</b> envia os e-mails.</li>
+          <li><b>Mercado Pago:</b> cobra a assinatura do Plus. Os dados do cartão ficam só com eles; a odri recebe só se o pagamento foi aprovado.</li>
           <li><b>MET Norway:</b> recebe só a posição aproximada, sem nome nem e-mail, pra devolver a previsão do tempo.</li>
           <li><b>Mercado Livre:</b> quando você clica num link da Loja, vai pro site deles. A odri pode ganhar uma comissão, sem custo extra pra você.</li>
         </ul>

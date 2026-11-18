@@ -9,6 +9,7 @@ const Entrar = lazy(() => import('./pages/Entrar'))
 const Painel = lazy(() => import('./pages/Painel'))
 const Comecar = lazy(() => import('./pages/Comecar'))
 const Privacidade = lazy(() => import('./pages/Privacidade'))
+const Termos = lazy(() => import('./pages/Termos'))
 
 /**
  * Telas do site: início, criar conta, entrar, começar, painel e política de privacidade.
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/app/admin" element={<Painel tela="admin" />} />
         <Route path="/app/comecar" element={<Comecar />} />
         <Route path="/privacidade" element={<Privacidade />} />
+        <Route path="/termos" element={<Termos />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

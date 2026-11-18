@@ -298,6 +298,7 @@ export default function Inicio() {
           </div>
           <div className="rodape-links">
             <Link to="/privacidade">Privacidade</Link>
+            <Link to="/termos">Termos</Link>
             <a href="https://instagram.com/odri.app" target="_blank" rel="noopener noreferrer">Instagram @odri.app</a>
             <span className="apagado">Dados do clima: MET Norway</span>
             <span className="apagado">© 2026 odri</span>
