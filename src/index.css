@@ -1178,6 +1178,59 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 }
 .loja-cartao:hover .loja-cartao-ir { transform: translateX(2px); }
 .loja-ordem-brilho { color: var(--destaque); font-size: 15px; line-height: 1; }
+
+/* Prateleiras da Loja: celular arrasta pro lado; PC tem setas */
+.prateleira-loja { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.prateleira-loja-topo { display: flex; align-items: flex-end; gap: 12px; }
+.prateleira-loja-nome { flex: 1; min-width: 0; }
+.prateleira-loja-nome h3 { font-family: var(--fonte-destaque); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.prateleira-loja-nome p { font-size: 13.5px; color: var(--apagado); }
+.prateleira-loja-ver {
+  flex: none; font-size: 14px; font-weight: 800; color: var(--destaque-texto); text-decoration: none; padding: 6px 2px;
+}
+.prateleira-loja-ver:hover { text-decoration: underline; }
+.prateleira-loja-setas { display: none; gap: 6px; }
+.prateleira-loja-setas button {
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  border: 1.5px solid var(--borda-forte); background: var(--superficie); color: var(--texto);
+  font-size: 22px; line-height: 1; padding-bottom: 3px; transition: border-color 0.2s, opacity 0.2s;
+}
+.prateleira-loja-setas button:hover:not(:disabled) { border-color: var(--texto); }
+.prateleira-loja-setas button:disabled { opacity: 0.35; cursor: default; }
+.prateleira-loja-trilho {
+  list-style: none; display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scrollbar-width: none;
+  margin: 0 -16px; padding: 2px 16px 8px; scroll-padding: 0 16px;
+}
+.prateleira-loja-trilho::-webkit-scrollbar { display: none; }
+/* Celular: 2 cartões e meio (mostra que dá pra arrastar) */
+.prateleira-loja-trilho > li { flex: 0 0 calc((100% - 20px) / 2.4); display: flex; scroll-snap-align: start; }
+@media (min-width: 600px) { .prateleira-loja-trilho > li { flex-basis: calc((100% - 30px) / 3.4); } }
+/* PC: setas no lugar de arrastar, 4 por vez */
+@media (min-width: 960px) {
+  .prateleira-loja-setas { display: flex; }
+  .prateleira-loja-trilho { gap: 12px; margin: 0; padding: 2px 0 8px; scroll-padding: 0; }
+  .prateleira-loja-trilho > li { flex-basis: calc((100% - 36px) / 4); }
+}
+/* Na prateleira "Combina agora" o selo "Combina agora" seria repetido */
+.prateleira-loja-combina .loja-cartao-selo:not(.loja-cartao-selo-tenho) { display: none; }
+/* Último cartão: "Ver todos" */
+.loja-cartao-todos {
+  align-items: flex-start; justify-content: flex-end; gap: 8px; min-height: 230px;
+  background: color-mix(in srgb, var(--destaque) 10%, var(--superficie)); border-style: dashed; border-color: var(--borda-forte);
+}
+.loja-cartao-todos-numero { font-family: var(--fonte-destaque); font-size: 34px; font-weight: 700; letter-spacing: -0.03em; color: var(--destaque-texto); margin-bottom: auto; padding: 4px 2px 0; }
+.loja-cartao-todos .loja-cartao-ir { margin-top: 4px; }
+
+/* Página de um tipo (/app/loja/fresco) */
+.loja-pagina-topo { display: flex; flex-direction: column; gap: 4px; }
+.loja-voltar {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px;
+  font-size: 15px; font-weight: 800; color: var(--texto); text-decoration: none;
+}
+.loja-voltar span { font-size: 20px; line-height: 1; }
+.loja-voltar:hover { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) { .prateleira-loja-setas button { transition: none; } }
 @media (prefers-reduced-motion: reduce) {
   .loja-cartao, .loja-cartao-vitrine .frasco, .loja-cartao-ir { transition: none; }
   .loja-cartao:hover, .loja-cartao:hover .loja-cartao-vitrine .frasco { transform: none; }

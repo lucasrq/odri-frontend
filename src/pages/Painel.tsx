@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ErroApi } from '../lib/api'
 import {
@@ -803,11 +803,27 @@ function misturarDoDia(itens: Oferta[], clienteId: string) {
     .map((x) => x.o)
 }
 
+/** Tipos de perfume da Loja: endereço (/app/loja/fresco) → família, título da prateleira e uma frase curta. */
+const TIPOS_LOJA: { slug: string; familia: string; titulo: string; frase: string }[] = [
+  { slug: 'fresco', familia: 'FRESCO', titulo: 'Frescos', frase: 'Leves e limpos, bons pro calor' },
+  { slug: 'citrico', familia: 'CITRICO', titulo: 'Cítricos', frase: 'Vibrantes, pra usar de dia' },
+  { slug: 'floral', familia: 'FLORAL', titulo: 'Florais', frase: 'Delicados, cheiro de flor' },
+  { slug: 'doce', familia: 'DOCE', titulo: 'Doces', frase: 'Aconchegantes, lembram sobremesa' },
+  { slug: 'amadeirado', familia: 'AMADEIRADO', titulo: 'Amadeirados', frase: 'Marcantes, cheiro de madeira' },
+  { slug: 'oriental', familia: 'ORIENTAL', titulo: 'Orientais', frase: 'Intensos, pra noite e pro frio' },
+]
+const PAGINA_COMBINA = { slug: 'combina', familia: null, titulo: 'Combina agora', frase: 'Pelo clima de agora, na sua cidade' }
+/** Quantos perfumes cada prateleira mostra antes do "Ver todos". */
+const POR_PRATELEIRA = 8
+
 function Loja({ preferencia, sugestao, clienteId }: {
   preferencia: Preferencia | null
   sugestao: Sugestao | null
   clienteId: string
 }) {
+  // /app/loja = prateleiras; /app/loja/fresco (ou /combina) = grade só daquele tipo
+  const { tipo } = useParams<{ tipo?: string }>()
+  const pagina = tipo === 'combina' ? PAGINA_COMBINA : TIPOS_LOJA.find((t) => t.slug === tipo) ?? null
   const [busca, setBusca] = useState('')
   const [genero, setGenero] = useState<Genero | ''>(generoDaPreferencia(preferencia))
   const mexeuNoFiltro = useRef(false)
@@ -824,6 +840,16 @@ function Loja({ preferencia, sugestao, clienteId }: {
   const tempo = sugestao?.tempo
   const graus = sugestao?.temperatura ?? null
   const temClima = !!tempo && tempo !== 'DESCONHECIDO'
+  const buscando = busca.trim().length > 0
+  // Grade: na página de um tipo ou quando a pessoa busca. Sem isso, prateleiras.
+  const emGrade = !!pagina || buscando
+
+  // Trocou de página (prateleiras ↔ um tipo): volta pro topo, ordem "Pra você" e sem "Combina agora"
+  useEffect(() => {
+    setOrdem('pravoce')
+    setSoCombina(false)
+    window.scrollTo({ top: 0 })
+  }, [tipo])
 
   const carregar = useCallback(async () => {
     setErro(false)
@@ -842,18 +868,39 @@ function Loja({ preferencia, sugestao, clienteId }: {
   }, [carregar, busca])
 
   // Mudou o filtro: volta a mostrar só a primeira leva
-  useEffect(() => { setLimite(POR_PAGINA) }, [busca, genero, ordem, soCombina, soBarato])
+  useEffect(() => { setLimite(POR_PAGINA) }, [busca, genero, ordem, soCombina, soBarato, tipo])
 
-  const lista = itens && itens.filter((o) => (!soCombina || o.combina) && (!soBarato || o.faixa === 'ATE_150'))
+  const filtrados = itens && itens.filter((o) => !soBarato || o.faixa === 'ATE_150')
+  const lista = filtrados && filtrados.filter((o) => {
+    if (pagina && !buscando) return (pagina.familia ? o.familia === pagina.familia : o.combina) && (!soCombina || o.combina)
+    return !soCombina || o.combina
+  })
   const restam = lista ? lista.length - limite : 0
+
+  // Prateleiras: "Combina agora" (se tiver clima) + uma por família que tiver perfume
+  const prateleiras = filtrados && !emGrade
+    ? [
+        ...(temClima ? [{ ...PAGINA_COMBINA, itens: filtrados.filter((o) => o.combina) }] : []),
+        ...TIPOS_LOJA.map((t) => ({ ...t, itens: filtrados.filter((o) => o.familia === t.familia) })),
+      ].filter((p) => p.itens.length > 0)
+    : []
+  const semResultado = emGrade ? lista?.length === 0 : prateleiras.length === 0
 
   return (
     <section className="painel-pagina loja" aria-labelledby="titulo-loja">
-      <h2 id="titulo-loja" className="painel-titulo-pagina">Loja</h2>
+      {pagina ? (
+        <div className="loja-pagina-topo">
+          <Link to="/app/loja" className="loja-voltar"><span aria-hidden="true">‹</span> Loja</Link>
+          <h2 id="titulo-loja" className="painel-titulo-pagina">{pagina.titulo}</h2>
+          <p className="texto-2">{pagina.frase}</p>
+        </div>
+      ) : (
+        <h2 id="titulo-loja" className="painel-titulo-pagina">Loja</h2>
+      )}
 
-      {sugestao && !busca && <CombinaHoje sugestao={sugestao} />}
+      {!pagina && sugestao && !buscando && <CombinaHoje sugestao={sugestao} />}
 
-      {!busca && itens && vitrineNoAr() && <VitrineBlackFriday itens={itens} />}
+      {!pagina && !buscando && itens && vitrineNoAr() && <VitrineBlackFriday itens={itens} />}
 
       <div className="loja-controles">
         <label className="campo loja-busca">
@@ -874,7 +921,7 @@ function Loja({ preferencia, sugestao, clienteId }: {
               </button>
             ))}
           </div>
-          {temClima && (
+          {temClima && emGrade && pagina?.slug !== 'combina' && (
             <button
               type="button" className="colecao-filtro loja-filtro-combina"
               aria-pressed={soCombina} onClick={() => setSoCombina((v) => !v)}
@@ -889,16 +936,18 @@ function Loja({ preferencia, sugestao, clienteId }: {
           >
             Até R$150
           </button>
-          <button
-            type="button" className="loja-ordem"
-            onClick={() => setOrdem((o) => PROXIMA_ORDEM[o])}
-            aria-label={`Ordem: ${NOME_ORDEM[ordem]}. Tocar troca para ${NOME_ORDEM[PROXIMA_ORDEM[ordem]]}`}
-          >
-            {ordem === 'pravoce'
-              ? <span className="loja-ordem-brilho" aria-hidden="true">✦</span>
-              : <IconeOrdem invertido={ordem === 'maior'} />}
-            {NOME_ORDEM[ordem]}
-          </button>
+          {emGrade && (
+            <button
+              type="button" className="loja-ordem"
+              onClick={() => setOrdem((o) => PROXIMA_ORDEM[o])}
+              aria-label={`Ordem: ${NOME_ORDEM[ordem]}. Tocar troca para ${NOME_ORDEM[PROXIMA_ORDEM[ordem]]}`}
+            >
+              {ordem === 'pravoce'
+                ? <span className="loja-ordem-brilho" aria-hidden="true">✦</span>
+                : <IconeOrdem invertido={ordem === 'maior'} />}
+              {NOME_ORDEM[ordem]}
+            </button>
+          )}
         </div>
       </div>
 
@@ -928,10 +977,10 @@ function Loja({ preferencia, sugestao, clienteId }: {
         </div>
       )}
 
-      {!erro && itens && itens.length > 0 && lista?.length === 0 && (
+      {!erro && itens && itens.length > 0 && semResultado && (
         <div className="cartao-suave">
           <strong>Nenhum perfume com esses filtros</strong>
-          <p>Tire "Combina agora" ou "Até R$150" pra ver mais.</p>
+          <p>Tire um filtro ("Até R$150", "Combina agora" ou o gênero) pra ver mais.</p>
           <button
             type="button" className="botao botao-contorno botao-mini loja-tentar"
             onClick={() => { setSoCombina(false); setSoBarato(false) }}
@@ -941,13 +990,19 @@ function Loja({ preferencia, sugestao, clienteId }: {
         </div>
       )}
 
-      {lista && lista.length > 0 && (
+      {!emGrade && prateleiras.map((p) => (
+        <Prateleira key={p.slug} slug={p.slug} titulo={p.titulo} frase={p.frase} itens={p.itens} />
+      ))}
+
+      {emGrade && lista && lista.length > 0 && (
         <div className="loja-todos">
           <p className="grupo-titulo">
-            {soCombina ? `${lista.length} combinam agora` : busca ? `${lista.length} encontrados` : `${lista.length} perfumes`}
+            {buscando ? `${lista.length} encontrados` : soCombina ? `${lista.length} combinam agora` : `${lista.length} perfumes`}
           </p>
           <ul className="loja-grade">
-            {lista.slice(0, limite).map((o) => <CartaoOferta key={o.id} oferta={o} />)}
+            {lista.slice(0, limite).map((o) => (
+              <CartaoOferta key={o.id} oferta={o} detalhe={pagina && !buscando ? `loja-${pagina.slug}` : 'loja-busca'} />
+            ))}
           </ul>
           {restam > 0 && (
             <button type="button" className="botao botao-contorno loja-ver-mais" onClick={() => setLimite((l) => l + POR_PAGINA)}>
@@ -960,6 +1015,67 @@ function Loja({ preferencia, sugestao, clienteId }: {
       <p className="painel-dica">
         Links de parceiros: a odri pode ganhar comissão, sem mudar o seu preço. O preço final aparece na loja.
       </p>
+    </section>
+  )
+}
+
+/**
+ * Uma prateleira da Loja: no celular arrasta pro lado, no PC tem setas ‹ ›.
+ * Mostra até 8; o último cartão (e o "Ver mais" do título) abre a página só daquele tipo.
+ */
+function Prateleira({ slug, titulo, frase, itens }: { slug: string; titulo: string; frase: string; itens: Oferta[] }) {
+  const trilho = useRef<HTMLUListElement>(null)
+  const [setas, setSetas] = useState({ voltar: false, avancar: false })
+  const mostrar = itens.slice(0, POR_PRATELEIRA)
+  const sobra = itens.length - mostrar.length
+  const idTitulo = `prateleira-${slug}`
+
+  const atualizarSetas = useCallback(() => {
+    const t = trilho.current
+    if (!t) return
+    setSetas({ voltar: t.scrollLeft > 4, avancar: t.scrollLeft + t.clientWidth < t.scrollWidth - 4 })
+  }, [])
+
+  useEffect(() => {
+    // A lista mudou (filtro, ordem do dia): a prateleira volta pro começo
+    if (trilho.current) trilho.current.scrollLeft = 0
+    atualizarSetas()
+    window.addEventListener('resize', atualizarSetas)
+    return () => window.removeEventListener('resize', atualizarSetas)
+  }, [atualizarSetas, itens])
+
+  function passar(lado: 1 | -1) {
+    const t = trilho.current
+    if (!t) return
+    const suave = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    t.scrollBy({ left: lado * t.clientWidth * 0.92, behavior: suave ? 'smooth' : 'auto' })
+  }
+
+  return (
+    <section className={`prateleira-loja prateleira-loja-${slug}`} aria-labelledby={idTitulo}>
+      <div className="prateleira-loja-topo">
+        <div className="prateleira-loja-nome">
+          <h3 id={idTitulo}>{titulo}</h3>
+          <p>{frase}</p>
+        </div>
+        <Link to={`/app/loja/${slug}`} className="prateleira-loja-ver">Ver mais</Link>
+        <div className="prateleira-loja-setas">
+          <button type="button" onClick={() => passar(-1)} disabled={!setas.voltar} aria-label={`${titulo}: anteriores`}>‹</button>
+          <button type="button" onClick={() => passar(1)} disabled={!setas.avancar} aria-label={`${titulo}: próximos`}>›</button>
+        </div>
+      </div>
+      <ul className="prateleira-loja-trilho" ref={trilho} onScroll={atualizarSetas}>
+        {mostrar.map((o) => <CartaoOferta key={o.id} oferta={o} detalhe={`loja-${slug}`} />)}
+        {sobra > 0 && (
+          <li>
+            <Link to={`/app/loja/${slug}`} className="loja-cartao loja-cartao-todos">
+              <span className="loja-cartao-todos-numero">+{sobra}</span>
+              <strong>Ver todos os {titulo.toLowerCase()}</strong>
+              <span className="loja-cartao-ir" aria-hidden="true"><Seta tamanho={14} /></span>
+            </Link>
+          </li>
+        )}
+      </ul>
     </section>
   )
 }
@@ -1027,14 +1143,14 @@ function CombinaHoje({ sugestao }: { sugestao: Sugestao }) {
 const PRECO_CURTO = { ATE_150: 'até R$150', DE_150_A_400: 'R$150–400', ACIMA_400: '+ de R$400' } as const
 
 /** Um cartão da grade da Loja: o cartão inteiro abre o Mercado Livre. */
-function CartaoOferta({ oferta: o }: { oferta: Oferta }) {
+function CartaoOferta({ oferta: o, detalhe = 'loja' }: { oferta: Oferta; detalhe?: string }) {
   const loja = o.loja ? LOJA_CURTA[o.loja] : 'loja'
   const familia = o.familia.toLowerCase()
   return (
     <li>
       <a
         className={`loja-cartao fundo-${familia}`} href={o.link} target="_blank" rel="noopener noreferrer sponsored"
-        onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe: 'loja' })}
+        onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe })}
         aria-label={`${o.nome}, ${o.marca}, ${NOME_FAIXA[o.faixa].preco}${o.naColecao ? ', você tem' : o.combina ? ', combina agora' : ''}. Ver no ${loja}`}
       >
         <span className="loja-cartao-vitrine">
