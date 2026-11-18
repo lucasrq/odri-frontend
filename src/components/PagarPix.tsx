@@ -102,6 +102,9 @@ export default function PagarPix({ aoMudarCliente, aoFechar }: {
           <p className="plus-pix-esperando" aria-live="polite">
             <span className="plus-pix-bolinha" aria-hidden="true" /> Esperando o pagamento… o Plus libera sozinho quando cair.
           </p>
+          <p className="plus-pix-nome">
+            No app do banco vai aparecer o nome <strong>Lucas Rodrigues Roque da Silva</strong>: é o responsável pela odri. Pode pagar tranquilo.
+          </p>
           <p className="nota">O código vale 30 minutos.</p>
         </>
       )}
