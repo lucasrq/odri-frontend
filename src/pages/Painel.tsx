@@ -25,7 +25,7 @@ import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
 import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
 import { registrarEvento } from '../lib/eventos'
-import { Cadeado, Check, Fechar, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
+import { Cadeado, Check, Fechar, Instagram, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 
 type Tela = 'hoje' | 'colecao' | 'loja' | 'conta' | 'admin'
 type Estado = 'carregando' | 'pronto' | 'semLocal' | 'erro'
@@ -394,6 +394,15 @@ function Hoje({ estado, sugestao, cliente, recarregar }: {
             </button>
           </div>
         </section>
+
+        <a className="cartao-insta" href="https://www.instagram.com/odri.app/" target="_blank" rel="noopener noreferrer">
+          <span className="cartao-insta-icone"><Instagram /></span>
+          <span className="cartao-insta-texto">
+            <strong>@odri.app</strong>
+            <small>Dicas de perfume pro clima, toda semana</small>
+          </span>
+          <span className="cartao-insta-seguir">Seguir</span>
+        </a>
       </div>
 
       <div className="painel-col painel-col-analise" ref={analiseRef}>
