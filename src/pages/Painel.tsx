@@ -109,7 +109,7 @@ export default function Painel({ tela }: { tela: Tela }) {
             recarregar={() => cliente && carregar(cliente)}
           />
         )}
-        {tela === 'loja' && <Loja preferencia={cliente?.preferencia ?? null} sugestao={sugestao} />}
+        {tela === 'loja' && <Loja preferencia={cliente?.preferencia ?? null} sugestao={sugestao} clienteId={cliente?.id ?? ''} />}
         {tela === 'colecao' && (
           <Colecao
             cliente={cliente}
@@ -770,15 +770,44 @@ function Colecao({ cliente, sugestao, aoMudar }: {
 
 const LOJA_CURTA = { AMAZON: 'Amazon', MERCADO_LIVRE: 'Mercado Livre' } as const
 
-/** Quantos perfumes a lista da Loja mostra de cada vez ("Ver mais" soma outro tanto). */
-const POR_PAGINA = 10
+/** Quantos perfumes a grade da Loja mostra de cada vez ("Ver mais" soma outro tanto). 12 fecha linha com 2, 3 ou 4 colunas. */
+const POR_PAGINA = 12
 
 const GENEROS: [Genero | '', string][] = [['', 'Todos'], ['MASCULINO', 'Masculino'], ['FEMININO', 'Feminino']]
 
 /** A Loja abre filtrada pela preferência da pessoa ("os dois" ou sem resposta = Todos). */
 const generoDaPreferencia = (p: Preferencia | null): Genero | '' => (p === 'MASCULINO' || p === 'FEMININO' ? p : '')
 
-function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; sugestao: Sugestao | null }) {
+/** Ordem da grade: "Pra você" (misturada) → menor preço → maior preço → de novo. */
+type OrdemLoja = 'pravoce' | OrdemPreco
+const PROXIMA_ORDEM: Record<OrdemLoja, OrdemLoja> = { pravoce: 'menor', menor: 'maior', maior: 'pravoce' }
+const NOME_ORDEM: Record<OrdemLoja, string> = { pravoce: 'Pra você', menor: 'Menor preço', maior: 'Maior preço' }
+
+/** Número "aleatório" fixo para um texto (mesmo texto = mesmo número). */
+function sorteio(texto: string) {
+  let h = 2166136261
+  for (let i = 0; i < texto.length; i++) h = Math.imul(h ^ texto.charCodeAt(i), 16777619)
+  return h >>> 0
+}
+
+/**
+ * "Pra você": cada pessoa vê uma ordem diferente, que muda todo dia.
+ * No mesmo dia a ordem não muda (a grade não pula quando a pessoa mexe nos filtros).
+ */
+function misturarDoDia(itens: Oferta[], clienteId: string) {
+  const d = new Date()
+  const dia = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+  return itens
+    .map((o) => ({ o, n: sorteio(`${clienteId}-${dia}-${o.id}`) }))
+    .sort((a, b) => a.n - b.n)
+    .map((x) => x.o)
+}
+
+function Loja({ preferencia, sugestao, clienteId }: {
+  preferencia: Preferencia | null
+  sugestao: Sugestao | null
+  clienteId: string
+}) {
   const [busca, setBusca] = useState('')
   const [genero, setGenero] = useState<Genero | ''>(generoDaPreferencia(preferencia))
   const mexeuNoFiltro = useRef(false)
@@ -786,10 +815,11 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
   useEffect(() => {
     if (!mexeuNoFiltro.current) setGenero(generoDaPreferencia(preferencia))
   }, [preferencia])
-  const [ordem, setOrdem] = useState<OrdemPreco>('menor')
+  const [ordem, setOrdem] = useState<OrdemLoja>('pravoce')
   const [itens, setItens] = useState<Oferta[] | null>(null)
   const [erro, setErro] = useState(false)
   const [soCombina, setSoCombina] = useState(false)
+  const [soBarato, setSoBarato] = useState(false)
   const [limite, setLimite] = useState(POR_PAGINA)
   const tempo = sugestao?.tempo
   const graus = sugestao?.temperatura ?? null
@@ -798,11 +828,12 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
   const carregar = useCallback(async () => {
     setErro(false)
     try {
-      setItens(await buscarCatalogo({ busca, genero, ordem, tempo, graus }))
+      const lista = await buscarCatalogo({ busca, genero, ordem: ordem === 'pravoce' ? undefined : ordem, tempo, graus })
+      setItens(ordem === 'pravoce' ? misturarDoDia(lista, clienteId) : lista)
     } catch {
       setErro(true)
     }
-  }, [busca, genero, ordem, tempo, graus])
+  }, [busca, genero, ordem, tempo, graus, clienteId])
 
   // Espera a pessoa parar de digitar (250 ms) antes de buscar
   useEffect(() => {
@@ -811,9 +842,9 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
   }, [carregar, busca])
 
   // Mudou o filtro: volta a mostrar só a primeira leva
-  useEffect(() => { setLimite(POR_PAGINA) }, [busca, genero, ordem, soCombina])
+  useEffect(() => { setLimite(POR_PAGINA) }, [busca, genero, ordem, soCombina, soBarato])
 
-  const lista = itens && (soCombina ? itens.filter((o) => o.combina) : itens)
+  const lista = itens && itens.filter((o) => (!soCombina || o.combina) && (!soBarato || o.faixa === 'ATE_150'))
   const restam = lista ? lista.length - limite : 0
 
   return (
@@ -853,12 +884,20 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
             </button>
           )}
           <button
-            type="button" className="loja-ordem"
-            onClick={() => setOrdem((o) => (o === 'menor' ? 'maior' : 'menor'))}
-            aria-label={`Ordenar por preço: agora ${ordem === 'menor' ? 'menor' : 'maior'} primeiro`}
+            type="button" className="colecao-filtro"
+            aria-pressed={soBarato} onClick={() => setSoBarato((v) => !v)}
           >
-            <IconeOrdem invertido={ordem === 'maior'} />
-            {ordem === 'menor' ? 'Menor preço' : 'Maior preço'}
+            Até R$150
+          </button>
+          <button
+            type="button" className="loja-ordem"
+            onClick={() => setOrdem((o) => PROXIMA_ORDEM[o])}
+            aria-label={`Ordem: ${NOME_ORDEM[ordem]}. Tocar troca para ${NOME_ORDEM[PROXIMA_ORDEM[ordem]]}`}
+          >
+            {ordem === 'pravoce'
+              ? <span className="loja-ordem-brilho" aria-hidden="true">✦</span>
+              : <IconeOrdem invertido={ordem === 'maior'} />}
+            {NOME_ORDEM[ordem]}
           </button>
         </div>
       </div>
@@ -891,9 +930,12 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
 
       {!erro && itens && itens.length > 0 && lista?.length === 0 && (
         <div className="cartao-suave">
-          <strong>Nenhum desses combina agora</strong>
-          <p>Tire o filtro "Combina agora" pra ver todos.</p>
-          <button type="button" className="botao botao-contorno botao-mini loja-tentar" onClick={() => setSoCombina(false)}>
+          <strong>Nenhum perfume com esses filtros</strong>
+          <p>Tire "Combina agora" ou "Até R$150" pra ver mais.</p>
+          <button
+            type="button" className="botao botao-contorno botao-mini loja-tentar"
+            onClick={() => { setSoCombina(false); setSoBarato(false) }}
+          >
             Ver todos
           </button>
         </div>
@@ -902,10 +944,10 @@ function Loja({ preferencia, sugestao }: { preferencia: Preferencia | null; suge
       {lista && lista.length > 0 && (
         <div className="loja-todos">
           <p className="grupo-titulo">
-            {soCombina ? `${lista.length} combinam agora` : busca ? `${lista.length} encontrados` : `Todos os perfumes · ${lista.length}`}
+            {soCombina ? `${lista.length} combinam agora` : busca ? `${lista.length} encontrados` : `${lista.length} perfumes`}
           </p>
-          <ul className="grupo loja-lista">
-            {lista.slice(0, limite).map((o) => <LinhaOferta key={o.id} oferta={o} />)}
+          <ul className="loja-grade">
+            {lista.slice(0, limite).map((o) => <CartaoOferta key={o.id} oferta={o} />)}
           </ul>
           {restam > 0 && (
             <button type="button" className="botao botao-contorno loja-ver-mais" onClick={() => setLimite((l) => l + POR_PAGINA)}>
@@ -981,33 +1023,35 @@ function CombinaHoje({ sugestao }: { sugestao: Sugestao }) {
   )
 }
 
-/** Uma linha da lista da Loja: a linha inteira abre o Mercado Livre. */
-function LinhaOferta({ oferta: o }: { oferta: Oferta }) {
+/** Preço curto pro cartão da grade (cabe numa etiqueta pequena). */
+const PRECO_CURTO = { ATE_150: 'até R$150', DE_150_A_400: 'R$150–400', ACIMA_400: '+ de R$400' } as const
+
+/** Um cartão da grade da Loja: o cartão inteiro abre o Mercado Livre. */
+function CartaoOferta({ oferta: o }: { oferta: Oferta }) {
   const loja = o.loja ? LOJA_CURTA[o.loja] : 'loja'
+  const familia = o.familia.toLowerCase()
   return (
     <li>
       <a
-        className="grupo-linha loja-item" href={o.link} target="_blank" rel="noopener noreferrer sponsored"
+        className={`loja-cartao fundo-${familia}`} href={o.link} target="_blank" rel="noopener noreferrer sponsored"
         onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe: 'loja' })}
-        aria-label={`${o.nome}, ${o.marca}, ${NOME_FAIXA[o.faixa].preco}. Ver no ${loja}`}
+        aria-label={`${o.nome}, ${o.marca}, ${NOME_FAIXA[o.faixa].preco}${o.naColecao ? ', você tem' : o.combina ? ', combina agora' : ''}. Ver no ${loja}`}
       >
-        <span className={`loja-item-frasco fundo-${o.familia.toLowerCase()}`}>
-          <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={30} />
-        </span>
-        <span className="grupo-texto">
-          <strong>{o.nome}</strong>
-          <small>
-            <span className={`loja-familia fundo-${o.familia.toLowerCase()}`}>{NOME_FAMILIA[o.familia] ?? o.familia}</span>
-            {' · '}{o.marca}{o.genero === 'UNISSEX' ? ' · Unissex' : ''}
-          </small>
-        </span>
-        <span className="loja-item-fim">
-          <span className="loja-preco">{NOME_FAIXA[o.faixa].preco}</span>
+        <span className="loja-cartao-vitrine">
           {o.naColecao
-            ? <span className="loja-selo loja-selo-tenho">Você tem</span>
-            : o.combina && <span className="loja-selo">Combina agora</span>}
+            ? <span className="loja-cartao-selo loja-cartao-selo-tenho">Você tem</span>
+            : o.combina && <span className="loja-cartao-selo">Combina agora</span>}
+          <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={50} />
         </span>
-        <Seta tamanho={16} />
+        <strong>{o.nome}</strong>
+        <small>
+          <span className="loja-familia">{NOME_FAMILIA[o.familia] ?? o.familia}</span>
+          {' · '}{o.marca}{o.genero === 'UNISSEX' ? ' · Unissex' : ''}
+        </small>
+        <span className="loja-cartao-base">
+          <span className="loja-cartao-preco">{PRECO_CURTO[o.faixa]}</span>
+          <span className="loja-cartao-ir" aria-hidden="true"><Seta tamanho={14} /></span>
+        </span>
       </a>
     </li>
   )
