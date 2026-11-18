@@ -1544,3 +1544,11 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .selo.selo-destaque { background: var(--destaque); color: var(--texto-no-destaque); }
 .ocasioes-hoje-selo { margin: 0 0 6px; padding: 4px 10px; letter-spacing: 0.06em; text-transform: uppercase; }
 @media (max-width: 719px) { .janela .plano-plus { order: -1; } }
+
+/* Admin > Dar Plus */
+.admin-dar-plus { display: flex; flex-direction: column; gap: 14px; }
+.admin-plus-cartao { display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 20px; background: var(--superficie); border: 1px solid var(--borda); }
+.admin-plus-quem { display: flex; flex-direction: column; gap: 3px; }
+.admin-plus-quem strong { font-size: 19px; }
+.admin-plus-estado { margin-top: 6px; align-self: flex-start; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--tela); color: var(--apagado); }
+.admin-plus-ativo { background: var(--destaque); color: var(--texto-no-destaque); }

@@ -46,9 +46,31 @@ export type Numeros = {
   pendentes: number
   naLoja: number
   maisClicados: { nome: string; marca: string; cliques: number }[]
+  plusAbriuTotal?: number
+  plusAbriuSemana?: number
+  testesPlus?: number
+  ocasioesSemana?: number
+  presentesPlus?: number
 }
 
 export const buscarNumeros = () => api<Numeros>('/admin/numeros')
+
+/** Admin > Dar Plus (ClienteAdminDTO). */
+export type ClienteAdmin = {
+  id: string
+  nome: string
+  email: string | null
+  plus: boolean
+  plusAte: string | null
+  testeUsado: boolean
+}
+
+export const buscarClienteAdmin = (email: string) =>
+  api<ClienteAdmin>(`/admin/clientes?email=${encodeURIComponent(email)}`)
+
+/** dias = 0 tira o Plus. */
+export const darPlusAdmin = (id: string, dias: number) =>
+  api<ClienteAdmin>(`/admin/clientes/${id}/plus`, { method: 'POST', body: JSON.stringify({ dias }) })
 
 /**
  * Texto pronto pra colar no Claude: as regras, o formato do SQL e a lista de pendentes.
