@@ -51,6 +51,11 @@ export type Numeros = {
   testesPlus?: number
   ocasioesSemana?: number
   presentesPlus?: number
+  visitasHoje?: number
+  visitasSemana?: number
+  origensSemana?: { origem: string; visitas: number }[]
+  viramSugestaoHoje?: number
+  viramSugestaoSemana?: number
 }
 
 export const buscarNumeros = () => api<Numeros>('/admin/numeros')

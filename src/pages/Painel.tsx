@@ -26,7 +26,7 @@ import ReguaDia, { POS_PERIODO } from '../components/ReguaDia'
 import IconeOcasiao, { COR_OCASIAO } from '../components/IconeOcasiao'
 import { gerarAdesivoColecao } from '../lib/adesivo'
 import { ehAdmin } from '../lib/admin'
-import { registrarEvento } from '../lib/eventos'
+import { registrarEvento, registrarViuSugestao } from '../lib/eventos'
 import { Cadeado, Check, Chuva, Fechar, Instagram, Logo, Lua, Mais, Seta, Sol } from '../components/Icones'
 import {
   Assinatura, assinarPlus, cancelarAssinatura, comecarTestePlus, diaMes, diasAte, escolherOcasiao, listarOcasioes,
@@ -67,6 +67,7 @@ export default function Painel({ tela }: { tela: Tela }) {
       }
       setSugestao(await buscarSugestao(coords))
       setEstado('pronto')
+      registrarViuSugestao()
     } catch (e) {
       setEstado(e instanceof ErroApi && e.status === 400 ? 'semLocal' : 'erro')
     }

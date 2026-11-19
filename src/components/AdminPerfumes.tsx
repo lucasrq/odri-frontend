@@ -146,7 +146,10 @@ function PainelNumeros() {
   if (erro) return <p className="painel-dica">Não deu para carregar os números agora.</p>
   if (!n) return <p className="painel-dica">Carregando números…</p>
 
+  const origens = (n.origensSemana ?? []).slice(0, 3).map((o) => `${o.origem} ${o.visitas}`).join(' · ')
   const caixas: [string, number, string][] = [
+    ['Visitas no site (7 dias)', n.visitasSemana ?? 0, `${n.visitasHoje ?? 0} hoje${origens ? ' · ' + origens : ''}`],
+    ['Viram a sugestão (7 dias)', n.viramSugestaoSemana ?? 0, `${n.viramSugestaoHoje ?? 0} pessoas hoje`],
     ['Cadastros', n.cadastrosTotal, `+${n.cadastrosSemana} na semana · ${n.cadastrosHoje} hoje`],
     ['Plus valendo', n.assinantes, `${n.testesPlus ?? 0} testes começados · ${n.presentesPlus ?? 0} presentes`],
     ['Abriram o Plus', n.plusAbriuTotal ?? 0, `+${n.plusAbriuSemana ?? 0} na semana · ${n.ocasioesSemana ?? 0} ocasiões`],
