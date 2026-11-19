@@ -1591,3 +1591,6 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .janela-pix-fundo { z-index: 110; }
 .janela-pix { max-width: 440px; }
 .janela-pix .plus-pix { border: 0; background: none; padding: 0; }
+/* Teste grátis separado dos botões de pagar */
+.plus-teste { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 12px; border-top: 1px solid var(--borda); font-size: 14px; color: var(--apagado); }
+.plus-teste-botao { border: 0; background: none; cursor: pointer; font: inherit; font-size: 15px; font-weight: 700; color: var(--texto); text-decoration: underline; text-underline-offset: 3px; }

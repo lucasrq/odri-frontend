@@ -772,7 +772,7 @@ function Colecao({ cliente, sugestao, aoMudar, aoVerPlus }: {
           <strong>Os {LIMITE_GRATIS} lugares do grátis estão ocupados</strong>
           <p>Tire um perfume para colocar outro. No Plus a coleção não tem limite.</p>
           <button type="button" className="botao botao-destaque botao-campo" onClick={aoVerPlus}>
-            {cliente?.testeUsado ? 'Conhecer o Plus' : 'Testar o Plus 14 dias grátis'}
+            Conhecer o Plus
           </button>
         </div>
       ) : (
@@ -1537,7 +1537,7 @@ function Conta({ cliente, aoMudarCliente, aoVerPlus }: {
               )}
             </span>
             <button type="button" className="grupo-acao botao-texto" onClick={aoVerPlus}>
-              {cliente?.plus ? 'Ver o Plus' : cliente?.testeUsado ? 'Conhecer o Plus' : 'Testar 14 dias grátis'}
+              {cliente?.plus ? 'Ver o Plus' : 'Conhecer o Plus'}
             </button>
           </div>
           {assinatura && assinatura.status !== 'NENHUMA' && assinatura.status !== 'PENDENTE' && (
@@ -1743,8 +1743,8 @@ function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
   const [assinatura, setAssinatura] = useState<Assinatura | null>(null)
   const [indo, setIndo] = useState<'MENSAL' | 'ANUAL' | null>(null)
   useEffect(() => {
-    if (cliente && !podeTestar) minhaAssinatura().then(setAssinatura).catch(() => {})
-  }, [cliente, podeTestar])
+    if (cliente) minhaAssinatura().then(setAssinatura).catch(() => {})
+  }, [cliente])
   const assina = assinatura?.status === 'ATIVA'
 
   async function assinar(periodicidade: 'MENSAL' | 'ANUAL') {
@@ -1837,7 +1837,7 @@ function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
         <div className="plano plano-plus">
           <div className="plano-topo">
             <h3>odri Plus</h3>
-            <span className="selo selo-destaque">{plus ? 'Seu plano' : podeTestar ? '14 dias grátis' : 'Plus'}</span>
+            <span className="selo selo-destaque">{plus ? 'Seu plano' : 'Plus'}</span>
           </div>
           <p className="preco">R$ 9,90<span className="preco-detalhe">/mês ou R$ 59,90/ano</span></p>
           <ul className="lista-check">
@@ -1853,21 +1853,13 @@ function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
           {plus && cliente?.plusAte && (
             <p className="plus-ate">Seu Plus vale até <strong>{diaMes(cliente.plusAte)}</strong> · faltam {diasAte(cliente.plusAte)} dias</p>
           )}
-          {podeTestar && (
-            <>
-              <button type="button" className="botao botao-destaque botao-largo" disabled={comecando} onClick={testar}>
-                {comecando ? 'Liberando…' : 'Testar 14 dias grátis'}
-              </button>
-              <p className="nota plus-sem-cartao">Sem cartão. Quando acabar, volta pro grátis sozinho se você não assinar.</p>
-            </>
-          )}
           {assina && assinatura && (
             <p className="plus-ate">
               Você assina o Plus ({assinatura.periodicidade === 'ANUAL' ? 'anual' : 'mensal'})
               {assinatura.proximaCobranca && <> · próxima cobrança em <strong>{diaMes(assinatura.proximaCobranca)}</strong></>}
             </p>
           )}
-          {cliente && !podeTestar && !assina && (
+          {cliente && !assina && (
             <div className="plus-assinar">
               <button type="button" className="botao botao-destaque botao-largo" disabled={indo !== null} onClick={() => assinar('MENSAL')}>
                 {indo === 'MENSAL' ? 'Abrindo o Mercado Pago…' : 'Assinar por R$ 9,90/mês'}
@@ -1876,13 +1868,18 @@ function JanelaPlus({ cliente, aoFechar, aoMudarCliente }: {
                 {indo === 'ANUAL' ? 'Abrindo o Mercado Pago…' : 'R$ 59,90/ano · sai R$ 4,99 por mês'}
               </button>
               <p className="nota plus-sem-cartao">
-                {plus && cliente.plusAte
-                  ? `Você só paga quando o teste acabar (${diaMes(cliente.plusAte)}). `
-                  : ''}
-                Pagamento no Mercado Pago. Cancele quando quiser, na sua conta.
+                Cobra na hora, pelo Mercado Pago. Cancele quando quiser, na sua conta.
                 Ao assinar, você aceita os <Link to="/termos" onClick={aoFechar}>Termos</Link>.
               </p>
               <PagarPix aoMudarCliente={aoMudarCliente} aoFechar={aoFechar} />
+              {podeTestar && (
+                <div className="plus-teste">
+                  <span>Quer conhecer antes?</span>
+                  <button type="button" className="plus-teste-botao" disabled={comecando} onClick={testar}>
+                    {comecando ? 'Liberando…' : 'Testar 14 dias grátis, sem cartão'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {erro && <p className="conta-erro" role="alert">{erro}</p>}
