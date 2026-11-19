@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Inicio from './pages/Inicio'
+import { registrarVisita } from './lib/eventos'
 
 // Telas do app carregam só quando abertas: a página inicial continua leve
 // e não depende do Supabase para abrir.
@@ -15,6 +16,9 @@ const Termos = lazy(() => import('./pages/Termos'))
  * Telas do site: início, criar conta, entrar, começar, painel e política de privacidade.
  */
 export default function App() {
+  // Conta a visita (1 por sessão) e de onde veio: Instagram, TikTok, Google...
+  useEffect(() => { registrarVisita() }, [])
+
   return (
     <Suspense fallback={<main className="conta" />}>
       <Routes>

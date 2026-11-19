@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 // Endereço do nosso back-end (Spring). Local: http://localhost:8080.
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+export const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 /** Erro com o código HTTP, para a tela decidir o que fazer (ex.: 404 = sem cadastro). */
 export class ErroApi extends Error {
