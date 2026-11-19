@@ -17,7 +17,7 @@ export default function Termos() {
 
       <main className="container container-estreito privacidade">
         <h1>Termos de Uso</h1>
-        <p className="privacidade-data">Última atualização: 18 de novembro de 2026.</p>
+        <p className="privacidade-data">Última atualização: 19 de novembro de 2026.</p>
 
         <h2>O que é a odri</h2>
         <p>
@@ -40,7 +40,7 @@ export default function Termos() {
         <ul>
           <li><b>O que tem:</b> sugestão pela ocasião (Trabalho, Encontro, Festa e outras), coleção sem limite e tudo do grátis.</li>
           <li><b>Preço:</b> R$ 9,90 por mês ou R$ 59,90 por ano. O preço aparece antes de você pagar.</li>
-          <li><b>Teste grátis:</b> 14 dias, uma vez por conta, sem cartão. Se você assinar durante o teste, a primeira cobrança só acontece quando o teste acabar.</li>
+          <li><b>Teste grátis:</b> 14 dias, uma vez por conta, sem cartão. Ele é opcional: se preferir, dá pra assinar direto, e aí a cobrança acontece na hora.</li>
           <li><b>Pagamento:</b> pelo Mercado Pago, no cartão (assinatura que renova sozinha) ou no <b>Pix</b> (1 mês ou 1 ano, sem renovação automática). A odri não vê nem guarda os dados do seu cartão.</li>
           <li><b>Pix:</b> vale 30 dias (mensal) ou 365 dias (anual) a partir do pagamento, somando com o Plus que você já tiver. Perto de acabar, mandamos um e-mail pra renovar. Se não renovar, volta pro grátis.</li>
           <li><b>Renovação automática:</b> a assinatura renova sozinha no fim de cada período (mês ou ano) até você cancelar.</li>
