@@ -12,6 +12,31 @@ export type ItemAnalise = {
   familia: string | null
   intensidade: string | null
   motivo: string
+  /** Quando rende melhor hoje, se não combina agora (previsão do dia). FRIO = só em dia frio. */
+  melhorHorario?: 'MANHA' | 'TARDE' | 'NOITE' | 'FRIO' | null
+  melhorGraus?: number | null
+  melhorNota?: number | null
+}
+
+/** Selo de quem não combina agora mas tem horário melhor hoje. */
+export const NOME_MELHOR_HORARIO = {
+  MANHA: 'Melhor de manhã', TARDE: 'Melhor à tarde', NOITE: 'Melhor à noite', FRIO: 'Só no frio',
+} as const
+const QUANDO_HORARIO = { MANHA: 'De manhã', TARDE: 'À tarde', NOITE: 'À noite' } as const
+
+/**
+ * "À noite (24 °C) o Portinari rende mais." — o perfume da coleção que mais melhora mais tarde.
+ * null quando nenhum tem horário melhor hoje.
+ */
+export function dicaMaisTarde(analise: ItemAnalise[]): string | null {
+  const candidatos = analise.filter(
+    (a) => a.melhorHorario && a.melhorHorario !== 'FRIO' && a.melhorNota != null,
+  )
+  if (candidatos.length === 0) return null
+  const melhor = candidatos.reduce((a, b) => ((b.melhorNota ?? 0) > (a.melhorNota ?? 0) ? b : a))
+  const quando = QUANDO_HORARIO[melhor.melhorHorario as 'MANHA' | 'TARDE' | 'NOITE']
+  const graus = melhor.melhorGraus != null ? ` (${Math.round(melhor.melhorGraus)} °C)` : ''
+  return `${quando}${graus} o ${melhor.nome} rende mais.`
 }
 
 /** Resposta de GET /sugestao (SugestaoDTO). */
