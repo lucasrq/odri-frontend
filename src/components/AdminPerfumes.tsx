@@ -146,7 +146,8 @@ function PainelNumeros() {
   if (erro) return <p className="painel-dica">Não deu para carregar os números agora.</p>
   if (!n) return <p className="painel-dica">Carregando números…</p>
 
-  const origens = (n.origensSemana ?? []).slice(0, 3).map((o) => `${o.origem} ${o.visitas}`).join(' · ')
+  // Até 6 origens: com as etiquetas UTM (instagram-bio, instagram-story...) aparecem mais tipos
+  const origens = (n.origensSemana ?? []).slice(0, 6).map((o) => `${o.origem} ${o.visitas}`).join(' · ')
   const caixas: [string, number, string][] = [
     ['Visitas no site (7 dias)', n.visitasSemana ?? 0, `${n.visitasHoje ?? 0} hoje${origens ? ' · ' + origens : ''}`],
     ['Viram a sugestão (7 dias)', n.viramSugestaoSemana ?? 0, `${n.viramSugestaoHoje ?? 0} pessoas hoje`],

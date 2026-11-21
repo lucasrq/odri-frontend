@@ -16,8 +16,15 @@ export function registrarEvento(tipo: TipoEvento, extra: { perfumeId?: number; d
  * depois o site anterior (referrer). Sem nada = "direto" (digitou o endereço ou app que esconde a origem).
  */
 function origemDaVisita(): string {
-  const utm = new URLSearchParams(window.location.search).get('utm_source')
-  if (utm) return utm.toLowerCase().replace(/[^a-z]/g, '').slice(0, 20) || 'outro'
+  // utm_source + utm_medium viram uma etiqueta só: ?utm_source=instagram&utm_medium=bio -> "instagram-bio"
+  // (o banco guarda até 20 letras; números e hífen valem, ex.: "instagram-reel18")
+  const params = new URLSearchParams(window.location.search)
+  const limpar = (s: string | null) => (s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const fonte = limpar(params.get('utm_source'))
+  if (fonte) {
+    const meio = limpar(params.get('utm_medium'))
+    return (meio ? `${fonte}-${meio}` : fonte).slice(0, 20)
+  }
   let host = ''
   try { host = document.referrer ? new URL(document.referrer).hostname : '' } catch { /* referrer estranho */ }
   if (!host || host === window.location.hostname) return 'direto'
