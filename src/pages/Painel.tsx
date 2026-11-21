@@ -824,7 +824,13 @@ function Colecao({ cliente, sugestao, aoMudar, aoVerPlus }: {
         </div>
       )}
 
-      {itens === null && !erro && <p className="painel-dica">Carregando sua coleção…</p>}
+      {itens === null && !erro && (
+        <div className="cartao-esqueleto colecao-esqueleto" aria-busy="true" aria-label="Carregando sua coleção">
+          <span className="esqueleto-linha esqueleto-media" />
+          <span className="esqueleto-linha" />
+          <span className="esqueleto-linha esqueleto-media" />
+        </div>
+      )}
       {itens?.length === 0 && <p className="texto-2">Sua coleção está vazia. Busque um perfume acima para começar.</p>}
       {itens && itens.length > 0 && lista.length === 0 && <p className="painel-dica">Nenhum perfume neste filtro.</p>}
 
@@ -1102,7 +1108,18 @@ function Loja({ preferencia, sugestao, clienteId }: {
         </div>
       )}
 
-      {!erro && itens === null && <p className="painel-dica">Carregando…</p>}
+      {!erro && itens === null && (
+        // Esqueleto no formato dos cartões, em vez de "Carregando…" (que parecia tela quebrada)
+        <ul className="loja-grade" aria-busy="true" aria-label="Carregando a Loja">
+          {[0, 1, 2, 3].map((i) => (
+            <li key={i} className="loja-cartao-esqueleto">
+              <span className="esqueleto-linha esqueleto-vitrine" />
+              <span className="esqueleto-linha esqueleto-media" />
+              <span className="esqueleto-linha esqueleto-curta" />
+            </li>
+          ))}
+        </ul>
+      )}
 
       {!erro && itens?.length === 0 && (
         <div className="cartao-suave">
@@ -1310,6 +1327,8 @@ function CartaoOferta({ oferta: o, detalhe = 'loja' }: { oferta: Oferta; detalhe
           <span className="loja-cartao-preco">{PRECO_CURTO[o.faixa]}</span>
           <span className="loja-cartao-ir" aria-hidden="true"><Seta tamanho={14} /></span>
         </span>
+        {/* Aviso junto do clique: pra onde vai e que é link de parceiro */}
+        <span className="loja-cartao-parceiro">Ver no {loja} · link de parceiro</span>
       </a>
     </li>
   )
