@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { registrarEvento } from '../lib/eventos'
 import { FaixaPreco, NOME_FAIXA, Oferta } from '../lib/loja'
+import { NOME_FAMILIA, NOME_INTENSIDADE } from '../lib/painel'
 import Frasco from './Frasco'
 import { Seta } from './Icones'
 
@@ -71,7 +72,10 @@ export default function VitrineBlackFriday({ itens }: { itens: Oferta[] }) {
         <span className="vitrine-bf-conta">{contagem()}</span>
       </div>
       <h3 id="titulo-bf">Os perfumes que valem a pena, na semana dos descontos.</h3>
-      <p className="vitrine-bf-sub">Um de cada faixa de preço. O desconto é do Mercado Livre e muda por vendedor.</p>
+      <p className="vitrine-bf-sub">
+        Um de cada faixa de preço. O desconto é do Mercado Livre e muda por vendedor:
+        prefira loja oficial ou vendedor com reputação verde.
+      </p>
 
       <div className="vitrine-bf-abas" role="group" aria-label="Escolher vitrine">
         {ABAS.map(([valor, nome]) => (
@@ -91,13 +95,18 @@ export default function VitrineBlackFriday({ itens }: { itens: Oferta[] }) {
                 className={`vitrine-bf-card fundo-${o.familia.toLowerCase()}`}
                 href={o.link} target="_blank" rel="noopener noreferrer sponsored"
                 onClick={() => registrarEvento('CLIQUE_LOJA', { perfumeId: o.id, detalhe: `black-friday-${aba}` })}
-                aria-label={`${o.nome}, ${o.marca}, ${NOME_FAIXA[o.faixa].preco}. Ver ofertas no Mercado Livre`}
+                aria-label={`${o.nome}, ${o.marca}, ${NOME_FAIXA[o.faixa].preco}. Ver no Mercado Livre, link de parceiro, abre em nova aba`}
               >
                 <Frasco familia={o.familia} intensidade={o.intensidade} tamanho={40} />
                 <strong>{o.nome}</strong>
                 <small>{o.marca}</small>
+                {/* Motivo curto: o que a pessoa vai sentir (família e intensidade) */}
+                <small className="vitrine-bf-motivo">
+                  {[NOME_FAMILIA[o.familia], NOME_INTENSIDADE[o.intensidade]?.toLowerCase()].filter(Boolean).join(' e ')}
+                </small>
                 <span className="vitrine-bf-preco">{NOME_FAIXA[o.faixa].preco}</span>
-                <span className="vitrine-bf-ver">Ver ofertas <Seta tamanho={14} /></span>
+                <span className="vitrine-bf-ver">Ver no Mercado Livre <Seta tamanho={14} /></span>
+                <span className="vitrine-bf-parceiro">Link de parceiro</span>
               </a>
             </li>
           ))}

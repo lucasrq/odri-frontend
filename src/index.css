@@ -1149,6 +1149,8 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .vitrine-bf-preco { margin-top: auto; padding-top: 8px; font-size: 12px; font-weight: 800; color: #E0A04A; }
 .vitrine-bf-ver { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; font-weight: 800; }
 .vitrine-bf-aviso { font-size: 12px; color: var(--bf-apagado); padding: 8px 4px 0; }
+.vitrine-bf-card .vitrine-bf-motivo { font-size: 11.5px; font-style: italic; }
+.vitrine-bf-parceiro { font-size: 10.5px; color: var(--bf-apagado); }
 @media (min-width: 960px) {
   .vitrine-bf { padding: 22px 22px 18px; max-width: 760px; }
   .vitrine-bf h3 { font-size: 26px; }
@@ -1189,6 +1191,14 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .loja-cartao strong { padding: 0 2px; font-size: 15px; line-height: 1.2; overflow-wrap: anywhere; }
 .loja-cartao small { padding: 0 2px; font-size: 12.5px; line-height: 1.35; color: var(--apagado); }
 .loja-cartao-base { margin-top: auto; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.loja-cartao-parceiro { display: block; margin-top: 6px; font-size: 11px; color: var(--apagado); }
+/* Esqueleto da Loja enquanto carrega (mesmo formato do cartão) */
+.loja-cartao-esqueleto {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px; min-height: 190px; border-radius: 20px;
+  background: var(--superficie); border: 1px solid var(--borda);
+}
+.esqueleto-vitrine { height: 96px; border-radius: 14px; }
+.colecao-esqueleto { min-height: 120px; }
 .loja-cartao-preco { padding: 4px 9px; border-radius: 999px; background: var(--tela); font-size: 12.5px; font-weight: 800; white-space: nowrap; }
 .loja-cartao-ir {
   width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center;
