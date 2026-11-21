@@ -897,6 +897,22 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
   animation: aparece 0.6s var(--suave) both;
 }
 .cartao-carregando { min-height: 220px; justify-content: center; color: var(--tinta-apagado); }
+
+/* Esqueleto do cartão enquanto a sugestão carrega: mesma cor da página, linhas que brilham devagar */
+.cartao-esqueleto {
+  display: flex; flex-direction: column; gap: 14px; padding: 22px; min-height: 220px; border-radius: 26px;
+  background: var(--superficie); border: 1px solid var(--borda);
+}
+.esqueleto-linha {
+  display: block; height: 14px; width: 100%; border-radius: 8px;
+  background: linear-gradient(90deg, var(--borda) 0%, var(--fundo) 50%, var(--borda) 100%);
+  background-size: 200% 100%; animation: esqueleto-brilho 1.4s ease-in-out infinite;
+}
+.esqueleto-curta { width: 34%; height: 12px; }
+.esqueleto-titulo { width: 58%; height: 36px; border-radius: 10px; }
+.esqueleto-media { width: 72%; }
+@keyframes esqueleto-brilho { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .esqueleto-linha { animation: none; } }
 .cartao-linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .cartao-rotulo { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-apagado); }
 .cartao-nota {
@@ -956,6 +972,8 @@ button.regua-rotulo.toque:active { transform: translateX(-50%) scale(0.94); }
 .selo-combina { background: var(--creme); color: var(--creme-texto); }
 .selo-pode_ir { background: var(--borda); color: var(--texto); }
 .selo-evite { background: var(--tinta); color: var(--tinta-texto); }
+/* "Melhor à noite": não combina agora, mas tem horário bom hoje (contorno, sem tom de alerta) */
+.selo-depois { background: transparent; color: var(--texto); border: 1px solid var(--destaque); }
 .selo-em_analise { border: 1px dashed var(--borda-forte); color: var(--apagado); }
 
 /* Páginas Loja e Coleção */

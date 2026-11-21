@@ -8,8 +8,8 @@ import {
 } from '../lib/cadastro'
 import { ItemColecao, listarColecao, mensagemColecao, tirarDaColecao } from '../lib/colecao'
 import {
-  buscarSugestao, corDaTemperatura, ItemAnalise, NOME_FAMILIA, NOME_INTENSIDADE,
-  NOME_PERIODO, NOME_SELO, pegarLocalizacao, SAUDACAO, Sugestao,
+  buscarSugestao, corDaTemperatura, dicaMaisTarde, ItemAnalise, NOME_FAMILIA, NOME_INTENSIDADE,
+  NOME_MELHOR_HORARIO, NOME_PERIODO, NOME_SELO, pegarLocalizacao, SAUDACAO, Sugestao,
 } from '../lib/painel'
 import {
   buscarCatalogo, buscarLoja, Genero, NOME_FAIXA, NOME_LOJA, Oferta, OrdemPreco,
@@ -334,7 +334,16 @@ function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoTrocarOcasia
     if (abrir) requestAnimationFrame(() => analiseRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
   if (estado === 'carregando') {
-    return <div className="cartao-tinta cartao-carregando" aria-busy="true"><p>Escolhendo seu perfume…</p></div>
+    // Esqueleto no formato do cartão (mesma cor do fundo da página), em vez de um bloco claro com texto pequeno
+    return (
+      <div className="cartao-esqueleto" aria-busy="true" aria-label="Escolhendo seu perfume">
+        <span className="esqueleto-linha esqueleto-curta" />
+        <span className="esqueleto-linha esqueleto-titulo" />
+        <span className="esqueleto-linha esqueleto-media" />
+        <span className="esqueleto-linha" />
+        <span className="esqueleto-linha esqueleto-media" />
+      </div>
+    )
   }
   if (estado === 'semLocal') {
     return (
@@ -378,12 +387,6 @@ function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoTrocarOcasia
       <div className="painel-col painel-col-hoje">
         <OcasioesHoje cliente={cliente} aoVerPlus={aoVerPlus} aoTrocar={aoTrocarOcasiao} />
         <MelhorDoDia sugestao={sugestao} />
-        {semCombina && (
-          <DicaLoja
-            tempo={sugestao.tempo} graus={sugestao.temperatura}
-            titulo={sugestao.nadaCombina ? 'Falta na sua coleção' : 'Pra hoje, faltou um assim'}
-          />
-        )}
 
         {(outra || sugestao.perfume) && (
           <section aria-labelledby="titulo-pra-hoje">
@@ -393,6 +396,15 @@ function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoTrocarOcasia
               {sugestao.perfume && <AdesivoDoDia sugestao={sugestao} />}
             </div>
           </section>
+        )}
+
+        {/* A Loja vem depois da dica de uso, como um complemento, nunca como "sua coleção não serve" */}
+        {semCombina && (
+          <DicaLoja
+            tempo={sugestao.tempo} graus={sugestao.temperatura}
+            titulo={sugestao.tempo === 'CALOR' ? 'Um coringa pro calor'
+              : sugestao.tempo === 'FRIO' ? 'Um coringa pro frio' : 'Um coringa pra hoje'}
+          />
         )}
 
         <section aria-labelledby="titulo-sua-colecao">
@@ -429,7 +441,9 @@ function Hoje({ estado, sugestao, cliente, recarregar, aoVerPlus, aoTrocarOcasia
               <span className="grupo-texto">
                 <strong>Análise da coleção</strong>
                 <small>
-                  {combinam} {combinam === 1 ? 'combina' : 'combinam'} hoje
+                  {combinam > 0
+                    ? `${combinam} ${combinam === 1 ? 'combina' : 'combinam'} agora`
+                    : 'Veja o melhor horário de cada um'}
                   {emAnalise > 0 && ` · ${emAnalise} em análise`}
                 </small>
               </span>
@@ -523,7 +537,8 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
   const item = sugestao.analise.find((a) => a.id === perfume.id)
   const fraco = notaDoMelhor(sugestao) < COMBINA_A_PARTIR
   const ocasiao = sugestao.ocasiao ?? null
-  const rotulo = !fraco ? 'Melhor pra hoje' : nadaCombina ? 'O menos pior da sua coleção' : 'O melhor da sua coleção agora'
+  const rotulo = !fraco ? 'Melhor pra hoje' : 'Melhor opção pra agora'
+  const maisTarde = nadaCombina ? dicaMaisTarde(sugestao.analise) : null
   // Plus com ocasião: o cartão se pinta com a cor dela e ganha a faixa "Pra academia · até meia-noite"
   return (
     <section
@@ -544,7 +559,10 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
       <div className="cartao-linha">
         <span className="cartao-rotulo">{rotulo}</span>
         {item?.nota != null && (
-          <span className={fraco ? 'cartao-nota cartao-nota-fraca' : 'cartao-nota'}>{item.nota}% combina</span>
+          // Nota baixa não aparece em % (26% soa como erro): vira "com ajuste", que é o que a dica explica
+          <span className={fraco ? 'cartao-nota cartao-nota-fraca' : 'cartao-nota'}>
+            {fraco ? 'com ajuste' : `${item.nota}% combina`}
+          </span>
         )}
       </div>
       <div className="cartao-perfume">
@@ -566,7 +584,9 @@ function MelhorDoDia({ sugestao }: { sugestao: Sugestao }) {
           </div>
         )}
         <p className="cartao-texto">
-          {nadaCombina ? `${sugestao.motivo} Hoje, use pouco: 1 borrifada no pescoço.` : sugestao.motivo}
+          {nadaCombina
+            ? [sugestao.motivo, 'Use pouco: 1 borrifada no pescoço.', maisTarde].filter(Boolean).join(' ')
+            : sugestao.motivo}
         </p>
       </div>
     </section>
@@ -647,7 +667,7 @@ function Analise({ sugestao }: { sugestao: Sugestao }) {
       <h2 id="titulo-analise" className="painel-subtitulo">Análise da coleção</h2>
       <div className="painel-resumo">
         <div><strong>{lista.length}</strong><span>na coleção</span></div>
-        <div><strong className="destaque-texto">{combinam}</strong><span>combinam hoje</span></div>
+        <div><strong className="destaque-texto">{combinam}</strong><span>combinam agora</span></div>
         <div><strong>{emAnalise}</strong><span>em análise</span></div>
       </div>
 
@@ -673,7 +693,11 @@ function LinhaAnalise({ item }: { item: ItemAnalise }) {
     <li className="analise-item">
       <div className="analise-topo">
         <span><strong>{item.nome}</strong> <span className="apagado">{item.marca}</span></span>
-        <span className={`selo-analise selo-${item.selo.toLowerCase()}`}>{NOME_SELO[item.selo]}</span>
+        {item.melhorHorario && item.melhorHorario !== 'FRIO'
+          ? <span className="selo-analise selo-depois">{NOME_MELHOR_HORARIO[item.melhorHorario]}</span>
+          : item.melhorHorario === 'FRIO'
+            ? <span className="selo-analise selo-evite">{NOME_MELHOR_HORARIO.FRIO}</span>
+            : <span className={`selo-analise selo-${item.selo.toLowerCase()}`}>{NOME_SELO[item.selo]}</span>}
       </div>
       {item.nota != null && (
         <div className="analise-barra" role="img" aria-label={`${item.nota}% combina`}>
