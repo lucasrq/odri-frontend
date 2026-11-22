@@ -75,7 +75,7 @@ export default function Inicio() {
           <div className="hero-texto">
             <h1 className="entra" style={ordem(1)}>Qual perfume eu uso <span className="serif destaque">hoje?</span></h1>
             <p className="hero-sub entra" style={ordem(2)}>
-              A odri olha o clima da sua cidade e a hora do dia e escolhe, entre os perfumes que você já tem, o que combina agora. Com o motivo.
+              A odri vê o clima da sua cidade e escolhe entre os perfumes que você já tem.
             </p>
             <div className="hero-botoes entra" style={ordem(3)}>
               {logado
@@ -199,6 +199,13 @@ export default function Inicio() {
                 <span>{i === 'LEVE' ? 'Leve' : i === 'MEDIA' ? 'Média' : 'Forte'}</span>
               </div>
             ))}
+          </div>
+          {/* Botão no meio da página: quem rolou até aqui não precisa voltar ao topo */}
+          <div className="chamada-meio revela">
+            {logado
+              ? <Link to="/app" className="botao botao-destaque botao-grande">Abrir o app <Seta /></Link>
+              : <Link to="/criar-conta" className="botao botao-destaque botao-grande">Começar grátis <Seta /></Link>}
+            {!logado && <p className="nota">Sem cartão de crédito</p>}
           </div>
         </section>
 

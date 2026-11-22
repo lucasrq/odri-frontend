@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTema } from '../lib/useTema'
-import { Logo, Lua, Sol } from './Icones'
+import { IconeApp, Logo, Lua, Sol } from './Icones'
 
 /** Barra do topo: fica presa no alto ao rolar a página. Logado: só "Abrir o app". */
 export default function Topo({ logado = false }: { logado?: boolean }) {
@@ -11,6 +11,8 @@ export default function Topo({ logado = false }: { logado?: boolean }) {
     <header className="topo">
       <div className="topo-dentro">
         <a href="#inicio" aria-label="odri, início" className="topo-logo">
+          {/* Ícone âmbar: o mesmo dos vídeos e do poster, pra quem chega das redes reconhecer */}
+          <span className="topo-icone"><IconeApp tamanho={30} /></span>
           <Logo />
         </a>
         <nav aria-label="Principal" className="topo-menu">
